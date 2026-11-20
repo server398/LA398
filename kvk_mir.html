@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>КВК План - Сервер 398</title>
+    <style>
+        :root {
+            --bg-color: #1a1b26;
+            --card-bg: #24283b;
+            --text-main: #c0caf5;
+            --text-muted: #a9b1d6;
+            --accent-blue: #7aa2f7;
+            --accent-green: #9ece6a;
+            --accent-orange: #e0af68;
+            --accent-red: #f7768e;
+            --border-color: #414868;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        h1 {
+            color: #fff;
+            margin: 0 0 10px 0;
+            font-size: 2.5em;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.2em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        h2, h3 {
+            color: var(--accent-blue);
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: #fff;
+            font-size: 1.3em;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        ul {
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        strong {
+            color: #fff;
+        }
+
+        .highlight-green { color: var(--accent-green); font-weight: bold; }
+        .highlight-orange { color: var(--accent-orange); font-weight: bold; }
+        .highlight-red { color: var(--accent-red); font-weight: bold; }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .tower-card {
+            border-top: 4px solid var(--accent-blue);
+        }
+
+        .image-gallery {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .image-gallery img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .image-gallery img:hover {
+            transform: scale(1.02);
+        }
+
+        @media (max-width: 768px) {
+            .image-gallery {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .report-box {
+            background-color: #1f2335;
+            border-left: 4px solid var(--accent-orange);
+            padding: 15px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.95em;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            color: #e0af68;
+        }
+
+        .emoji {
+            font-size: 1.2em;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>КВК ПЛАН</h1>
+        <div class="subtitle">Расстановка сервера 398</div>
+    </header>
+
+    <div class="card">
+        <h2>Общие положения</h2>
+        <p>Занимаем позиции <strong>за час до начала КВК</strong>. Чёрную землю делим 50/50. Наша половина — справа на карте, за нами Северная и Восточная башни. Левая половина, Западная и Южная башни — за 400-м. Святилища ставим у своей башни, ориентир по карте — 10–11 клеток от границы башни наружу.</p>
+    </div>
+
+    <div class="grid-2">
+        <div class="card tower-card">
+            <h3><span class="emoji">🔹</span>Северная башня</h3>
+            <p><strong>Альянсы:</strong> BPM, VENS, AQUA и Vic.</p>
+            <ul>
+                <li><strong>Первый гарнизон:</strong> BPM + VENS</li>
+                <li><strong>Смена:</strong> AQUA + Vic с самого начала занимают места в северном секторе и готовят следующую смену.</li>
+            </ul>
+        </div>
+
+        <div class="card tower-card">
+            <h3><span class="emoji">🔹</span>Восточная башня</h3>
+            <p><strong>Альянсы:</strong> ZOR, VAB и KING.</p>
+            <ul>
+                <li><strong>Первый гарнизон:</strong> ZOR + VAB</li>
+                <li><strong>Смена:</strong> KING занимает места в восточном секторе и готовит смену.</li>
+                <li><em>Если людей на смену мало, ZOR и VAB заранее оставляют часть своих на второй заход.</em></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="card">
+        <p>На каждую башню ориентир для стартовой пары — <strong>15 полных отрядов</strong> в гарнизоне и ещё <strong>5 рядом</strong>, готовых зайти на подмену. Это общий состав от двух альянсов. Точное число уточняем по онлайну и вместимости башни.</p>
+    </div>
+
+    <div class="grid-2">
+        <div class="card">
+            <h3><span class="emoji">🏰</span>Замок Т7</h3>
+            <p>Предлагаю закрепить центр за <strong>Moon</strong>, со своим гарнизоном и сменой. Окончательное решение объявим после подтверждения условий по Т7 с 400-м.</p>
+        </div>
+
+        <div class="card">
+            <h3><span class="emoji">🌿</span>Группа TOP</h3>
+            <p>Поддержка обоих флангов. Одна группа встаёт на зелени у Северной башни, вторая — у Восточной.</p>
+            <p>TOP встречает добровольцев из альянсов 11–32 и показывает им места. Если соберутся около 20 человек, распределяем примерно по 10 на фланг. Если меньше — направляем туда, где нужнее поддержка. <strong>TMP этот КВК пропускает.</strong></p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2><span class="emoji">🤝</span>Договоренности и правила</h2>
+        <p>Соблюдаем договорённости с 400-м. При нарушении ответные действия направляем только на конкретного игрока. По перемирию на время КВК предлагаю каждому альянсу договориться со своим соперником по дуэли.</p>
+    </div>
+
+    <div class="card">
+        <h2>Инструкции для TOP и добровольцев</h2>
+        <p><strong>TOP, за вами правая сторона карты.</strong> Поставьте по одному координатору напротив каждой нашей башни: одного у Северной, второго у Восточной. До начала расстановки скиньте в НАП их ники и две игровые метки, чтобы лидеры альянсов 11–32 могли направить к вам своих ребят.</p>
+        <p>За час до КВК встречайте добровольцев у меток и показывайте каждому следующую свободную клетку. Святилища ставим <strong>в один вертикальный ряд на зелени вдоль правой границы</strong> чёрной земли. Северная группа заполняет верхнюю часть ряда, восточная — нижнюю. Если придут условно 20 человек, ставим примерно по 10 у каждой башни. Если людей меньше, координаторы сверяются между собой и направляют следующих туда, где нужнее помощь.</p>
+        <p>Во время КВК добровольцы держат своё место и остаются на связи со своим координатором. Если башне нужна помощь или смена, старший башни пишет координатору TOP, а тот называет конкретных игроков и точку сбора. Так остальные спокойно держат свой участок.</p>
+        <p>Если кто-то замечает нарушение перемирия, отправляет координатору <strong>ник, координаты и скрин</strong>. TOP передаёт информацию в НАП.</p>
+    </div>
+
+    <h2 style="text-align: center; margin-top: 40px; color: #fff;">Схемы расстановки</h2>
+    <div class="image-gallery">
+        <!-- Замените src на пути к вашим картинкам -->
+        <img src="image1.jpg" alt="Расстановка сервера 398">
+        <img src="image2.jpg" alt="Где встать добровольцам">
+    </div>
+
+    <div class="card">
+        <h2>Отчет для Р4/Р5</h2>
+        <p>Р4/Р5, отпишитесь в НАП одной строкой по следующему шаблону:</p>
+        <div class="report-box">Альянс / кто ведёт и кто его заменит / сколько полных отрядов будет к старту / сколько придёт на смену и во сколько по МСК.</div>
+    </div>
+
+</div>
+
+</body>
+</html>
