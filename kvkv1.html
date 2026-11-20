@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>План защиты: Замок и Башни</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-yellow: #facc15;
+            --accent-orange: #fb923c;
+            --accent-blue: #38bdf8;
+            --accent-green: #4ade80;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* Заголовок */
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .subtitle {
+            color: var(--accent-green);
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .desc {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        /* Сетка карты */
+        .map-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-areas: 
+                ". north ."
+                "west center east"
+                ". south .";
+            gap: 20px;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        /* Линии соединения */
+        .map-grid::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60%;
+            height: 2px;
+            background-color: #334155;
+            z-index: 0;
+        }
+        
+        .map-grid::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 80%;
+            background-color: #334155;
+            z-index: 0;
+        }
+
+        .tower-card {
+            background-color: var(--card-bg);
+            border: 2px solid #334155;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+
+        .tower-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .tower-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 1rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .tower-card .alliance {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .tower-card .troops {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Позиционирование */
+        .north { grid-area: north; border-color: var(--accent-green); }
+        .south { grid-area: south; border-color: var(--accent-green); }
+        .west { grid-area: west; border-color: var(--accent-green); }
+        .east { grid-area: east; border-color: var(--accent-orange); }
+        
+        .center { 
+            grid-area: center; 
+            border-color: var(--accent-yellow);
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border-width: 3px;
+        }
+
+        .center .alliance {
+            font-size: 1.8rem;
+            color: var(--accent-yellow);
+        }
+
+        /* Блок поддержки */
+        .top-support {
+            grid-column: 1 / -1;
+            background-color: #1e293b;
+            border: 2px dashed var(--accent-blue);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            margin-top: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .top-support h3 {
+            color: var(--accent-blue);
+            margin: 0 0 5px 0;
+        }
+
+        /* Текстовые инструкции */
+        .instructions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .info-box {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid var(--accent-yellow);
+        }
+
+        .info-box h2 {
+            margin-top: 0;
+            font-size: 1.3rem;
+            color: var(--accent-yellow);
+            border-bottom: 1px solid #334155;
+            padding-bottom: 10px;
+        }
+
+        ul {
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        .highlight {
+            color: var(--accent-green);
+            font-weight: bold;
+        }
+
+        .highlight-orange {
+            color: var(--accent-orange);
+            font-weight: bold;
+        }
+
+        /* Адаптивность для мобильных */
+        @media (max-width: 768px) {
+            .map-grid {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "north"
+                    "west"
+                    "center"
+                    "east"
+                    "south";
+            }
+            
+            .map-grid::before, .map-grid::after {
+                display: none;
+            }
+
+            .instructions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="subtitle">КВК / 398 × 400 / 21 ноября</div>
+        <h1>Защита замка и башен</h1>
+        <div class="desc">План на старт • числа указаны на два альянса вместе</div>
+    </header>
+
+    <!-- Визуальная схема -->
+    <div class="map-grid">
+        <div class="tower-card north">
+            <h3>⬆️ Север</h3>
+            <div class="alliance">BPM + VENS</div>
+            <div class="troops">15 отрядов внутри<br>5 отрядов рядом</div>
+        </div>
+
+        <div class="tower-card west">
+            <h3>⬅️ Запад</h3>
+            <div class="alliance">KING + TMP</div>
+            <div class="troops">15 отрядов внутри<br>5 отрядов рядом</div>
+        </div>
+
+        <div class="tower-card center">
+            <h3>👑 Замок Т7</h3>
+            <div class="alliance">Moon</div>
+            <div class="troops">Гарнизон и смена<br>Число уточняется</div>
+        </div>
+
+        <div class="tower-card east">
+            <h3>➡️ Восток • Приманка</h3>
+            <div class="alliance">ZOR + VAB</div>
+            <div class="troops">~10 отрядов внутри<br>Сильные игроки рядом<br><small>Число — по онлайну</small></div>
+        </div>
+
+        <div class="tower-card south">
+            <h3>⬇️ Юг</h3>
+            <div class="alliance">AQUA + VIC</div>
+            <div class="troops">15 отрядов внутри<br>5 отрядов рядом</div>
+        </div>
+
+        <div class="top-support">
+            <h3>🔄 Top — поддержка всех четырёх башен</h3>
+            <p>Каждой группе Top назначаем свою башню после сбора онлайна.</p>
+        </div>
+    </div>
+
+    <!-- Текстовые инструкции -->
+    <div class="instructions-grid">
+        <div class="info-box" style="border-left-color: var(--accent-orange);">
+            <h2>Когда занимать позиции</h2>
+            <ul>
+                <li><strong>В пятницу</strong> желающие могут заранее встать на зелени у края грязи под щитом. Свою точку уточняйте у лидера.</li>
+                <li><strong>За час до открытия</strong> лидеры сверяют онлайн и подтверждают, кто начинает бой и кто придёт на смену.</li>
+                <li><strong>За 20 минут до открытия</strong> основной состав по общему сигналу заходит на грязь. Если 400-й начнёт занимать места раньше, наблюдатели передают координаты лидерам.</li>
+            </ul>
+        </div>
+
+        <div class="info-box" style="border-left-color: var(--accent-blue);">
+            <h2>Как действуем в бою</h2>
+            <ul>
+                <li>Если атакуют вашу башню, ответственный сообщает в НАП: <em>«Север под атакой, нужны три свежих отряда»</em>. Первыми откликаются игроки рядом и группа Top. Штурмы собирают R4/R5.</li>
+                <li>Если соперник пройдёт мимо восточной, свободные игроки <strong>ZOR и VAB</strong> помогут там, откуда поступит запрос.</li>
+                <li>Если одну башню потеряем, её группа готовит возврат. При атаке на вторую — резерв помогает её удержать. <strong>Moon</strong> продолжает защищать столицу.</li>
+                <li>Если вашу базу выбили, сообщите ответственному и используйте запасную метку. Игрок с зелени по сигналу занимает освободившееся место.</li>
+            </ul>
+        </div>
+
+        <div class="info-box" style="border-left-color: var(--accent-green);">
+            <h2>Особенности флангов</h2>
+            <ul>
+                <li><strong>Восток (ZOR+VAB):</strong> Оставляем маленький гарнизон, чтобы башня казалась слабой. Сильные игроки стоят рядом. Если враг пойдёт на восток — выбиваем базы и навязываем бой.</li>
+                <li><strong>Север (BPM+VENS):</strong> Два равных состава. Удерживают численностью, заранее договариваются о смене.</li>
+                <li><strong>Юг (AQUA+VIC):</strong> Распределяют сильные отряды между первым гарнизоном и сменой.</li>
+                <li><strong>Запад (KING+TMP):</strong> Самые сильные отряды в гарнизоне, средние — для численности и смены.</li>
+            </ul>
+        </div>
+
+        <div class="info-box" style="border-left-color: var(--accent-yellow);">
+            <h2>Участие 11–32 и Министры</h2>
+            <ul>
+                <li><strong>Альянсы 11–32:</strong> Могут подключиться на часть боя. Через лидера сообщите, когда будете онлайн и что готовы взять (зелень, помощь у башни, смена).</li>
+                <li><strong>Министр стратегии:</strong> Предлагаем <span class="highlight">Квантика [Moon]</span>, если он держит Т7. Если основную часть в центре проведёт <span class="highlight">Фантик [Moon]</span> — передать титул ему.</li>
+                <li><strong>Министр войны:</strong> <span class="highlight-orange">Шумке [VAB]</span> на подготовку, если он планирует крупную тренировку войск.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
