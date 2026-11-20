@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>КВК — тактика войны королевств | Last Asylum: Plague</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #171a21;
+      --panel-2: #1e232c;
+      --border: #2b3240;
+      --text: #e8edf5;
+      --muted: #9aa7b8;
+      --accent: #d4a24c;
+      --accent-2: #6fb3ff;
+      --danger: #ff6b6b;
+      --success: #5bd68a;
+      --warning: #ffcc66;
+      --radius: 14px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(111,179,255,.12), transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, rgba(212,162,76,.10), transparent 55%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 18px 60px;
+    }
+
+    header.hero {
+      background: linear-gradient(135deg, rgba(212,162,76,.16), rgba(111,179,255,.08));
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) + 6px);
+      padding: 28px 26px;
+      box-shadow: var(--shadow);
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 12px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid rgba(212,162,76,.35);
+      background: rgba(212,162,76,.08);
+      padding: 5px 10px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(24px, 4vw, 38px);
+      line-height: 1.15;
+      letter-spacing: -.02em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      max-width: 850px;
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    @media (max-width: 900px) {
+      .grid.cols-3, .grid.cols-2 { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--panel-2), var(--panel));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 18px 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .card h2, .card h3 {
+      margin-top: 0;
+      letter-spacing: -.01em;
+    }
+
+    .card h2 {
+      font-size: 19px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card h3 {
+      font-size: 16px;
+      margin-bottom: 8px;
+      color: var(--accent);
+    }
+
+    .num {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: rgba(212,162,76,.14);
+      border: 1px solid rgba(212,162,76,.35);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      flex: 0 0 auto;
+    }
+
+    .muted { color: var(--muted); }
+
+    .tag {
+      display: inline-block;
+      font-size: 12px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      color: var(--muted);
+      margin: 0 6px 6px 0;
+      white-space: nowrap;
+    }
+
+    .tag.gold { color: var(--accent); border-color: rgba(212,162,76,.4); background: rgba(212,162,76,.08); }
+    .tag.blue { color: var(--accent-2); border-color: rgba(111,179,255,.4); background: rgba(111,179,255,.08); }
+    .tag.green { color: var(--success); border-color: rgba(91,214,138,.4); background: rgba(91,214,138,.08); }
+    .tag.red { color: var(--danger); border-color: rgba(255,107,107,.4); background: rgba(255,107,107,.08); }
+
+    .callout {
+      border-left: 4px solid var(--accent);
+      background: rgba(212,162,76,.07);
+      padding: 12px 14px;
+      border-radius: 0 10px 10px 0;
+      margin: 12px 0 0;
+      color: #f2e6cf;
+      font-size: 14px;
+    }
+
+    .callout.blue {
+      border-left-color: var(--accent-2);
+      background: rgba(111,179,255,.07);
+      color: #dceaff;
+    }
+
+    .callout.red {
+      border-left-color: var(--danger);
+      background: rgba(255,107,107,.07);
+      color: #ffe0e0;
+    }
+
+    .callout.green {
+      border-left-color: var(--success);
+      background: rgba(91,214,138,.07);
+      color: #ddffe9;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 10px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      background: rgba(255,255,255,.02);
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    .stage {
+      position: relative;
+      padding-left: 28px;
+    }
+
+    .stage::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 6px;
+      bottom: 6px;
+      width: 2px;
+      background: linear-gradient(180deg, var(--accent), rgba(212,162,76,.1));
+      border-radius: 2px;
+    }
+
+    .stage .dot {
+      position: absolute;
+      left: -5px;
+      top: 6px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(212,162,76,.15);
+    }
+
+    ul.clean {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    ul.clean li { margin: 6px 0; }
+
+    ul.check {
+      list-style: none;
+      padding: 0;
+      margin: 8px 0 0;
+    }
+
+    ul.check li {
+      position: relative;
+      padding-left: 26px;
+      margin: 8px 0;
+    }
+
+    ul.check li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: var(--success);
+      font-weight: 800;
+    }
+
+    ul.ban {
+      list-style: none;
+      padding: 0;
+      margin: 8px 0 0;
+    }
+
+    ul.ban li {
+      position: relative;
+      padding-left: 26px;
+      margin: 9px 0;
+    }
+
+    ul.ban li::before {
+      content: "✕";
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: var(--danger);
+      font-weight: 800;
+    }
+
+    .kpi {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 760px) {
+      .kpi { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+
+    .kpi .box {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+
+    .kpi .box b {
+      display: block;
+      font-size: 17px;
+      color: var(--accent);
+      margin-bottom: 2px;
+    }
+
+    .kpi .box span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .footer-note {
+      margin-top: 22px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .pill-row { margin-top: 10px; }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 18px 0;
+    }
+
+    .big {
+      font-size: 15px;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      color: #c9d3e2;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <header class="hero">
+      <div class="eyebrow">Last Asylum: Plague · КВК</div>
+      <h1>«Война королевств» — тактика против более сильного врага</h1>
+      <p class="subtitle">
+        План построен на истощении противника через башни, контроле гарнизонов и поэтапном подключении сильных игроков к замку.
+        Главная идея: не ломиться сразу в замок, а выигрывать за счёт башен, перераспределения и точечного давления.
+      </p>
+      <div class="pill-row">
+        <span class="tag gold">3 этапа</span>
+        <span class="tag blue">башни → замок</span>
+        <span class="tag green">без толкучки в одной цели</span>
+        <span class="tag red">штурмы только пятёрками</span>
+      </div>
+    </header>
+
+    <div class="grid cols-3" style="margin-bottom:18px;">
+      <div class="card">
+        <h2><span class="num">1</span> Замок сразу не удержать</h2>
+        <p class="muted" style="margin:0;">
+          Против более сильного игрока прямой заход в замок — это слив армии. На первом этапе
+          приоритет — башни и истощение вражеских мелких и средних отрядов.
+        </p>
+      </div>
+      <div class="card">
+        <h2><span class="num">2</span> Башни — источник урона</h2>
+        <p class="muted" style="margin:0;">
+          Активные башни бьют по замку и не разбирают, кого убивать. Пока мы держим башни,
+          враг теряет армию, а его топы часто остаются в замке и не бегут спасать башни.
+        </p>
+      </div>
+      <div class="card">
+        <h2><span class="num">3</span> Гарнизон ограничен</h2>
+        <p class="muted" style="margin:0;">
+          На башне помещается примерно до 20 человек, в замке — примерно до 50.
+          Если цель переполнена — не беги туда снова, помоги на соседней цели.
+        </p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:18px;">
+      <h2>Подготовка до боя</h2>
+      <div class="grid cols-2">
+        <div>
+          <h3>1. Разбить игроков по силе отрядов</h3>
+          <ul class="clean">
+            <li>до 4 млн;</li>
+            <li>4–5 млн;</li>
+            <li>5–6 млн;</li>
+            <li>свыше 6 млн;</li>
+            <li>отдельно топ-10 альянса.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>2. Назначить основные цели</h3>
+          <ul class="clean">
+            <li>по 2 альянса на каждую ключевую башню;</li>
+            <li>отдельные группы на давление по замку;</li>
+            <li>топ-10 распределить примерно по 20% на главные направления, чтобы не было перекоса.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3>3. Объяснить всем базовые правила</h3>
+      <div class="grid cols-2">
+        <ul class="check">
+          <li>Не биться в лоб без необходимости.</li>
+          <li>Не перегружать гарнизон.</li>
+          <li>Захвачена твоя башня — помоги в соседней.</li>
+        </ul>
+        <ul class="check">
+          <li>Захвачены все башни — помоги в замке.</li>
+          <li>Штурм — только пятёркой рядом стоящих игроков.</li>
+          <li>Переход на замок — по порогу или команде, а не хаотично.</li>
+        </ul>
+      </div>
+
+      <div class="callout blue">
+        Перед стартом уточнить проценты: в записи пороги 20–25% и 30–35% звучат сбивчиво.
+        Нужно заранее зафиксировать, что именно они означают — захват врагом или момент нашего переключения.
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:18px;">
+      <h2>Этап 1. Удержание башен и истощение врага</h2>
+      <p class="muted" style="margin-top:0;">
+        Цель: захватить и удерживать башни, нанести врагу потери через башни, не сливать свою армию в прямых столкновениях.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Группа</th>
+            <th>Задача</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>До 6 млн</b></td>
+            <td>Бьют конкретные назначенные цели, держат башни, выбивают мелочь из замка.</td>
+          </tr>
+          <tr>
+            <td><b>Свыше 6 млн</b></td>
+            <td>Выбивают в замке вражеских топов и проблемные отряды, помогают отбивать башни, если свои не справляются.</td>
+          </tr>
+          <tr>
+            <td><b>2 альянса на башню</b></td>
+            <td>Основная задача — контроль башни.</td>
+          </tr>
+          <tr>
+            <td><b>Назначенные игроки</b></td>
+            <td>Давят мелкие цели в замке, чтобы там не сидели «нубы».</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout" style="margin-top:14px;">
+        Главное на этапе: не идти массово в замок, не устраивать лобовые размены, использовать башни как «мясорубку»
+        для вражеских мелких и средних. Если гарнизон башни полон — не стоять, а идти помогать на соседнюю цель.
+      </div>
+
+      <p style="margin:14px 0 0;">
+        <span class="tag gold">Триггер перехода</span>
+        Когда враг подходит к примерно <b>20–25% захвата</b> или когда башни уже стабильно наши —
+        топы свыше 6 млн начинают активно переключаться на замок.
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom:18px;">
+      <h2>Этап 2. Подключение топов к замку</h2>
+      <p class="muted" style="margin-top:0;">
+        Цель: начать продавливать замок, пока враг уже потерял армию в башнях.
+      </p>
+
+      <div class="grid cols-2">
+        <div>
+          <h3>Действия</h3>
+          <ul class="clean">
+            <li>Игроки <b>свыше 6 млн</b> идут в замок и бьют самые проблемные места.</li>
+            <li>Игроки <b>5–6 млн</b> пока держат башни и помогают соседям.</li>
+            <li>Мелкие и средние продолжают удерживать башни и не дают врагу безнаказанно их отбивать.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Усиление давления</h3>
+          <ul class="clean">
+            <li>Если враг растёт до примерно <b>30–35%</b>, в замок подключаются <b>5-миллионники</b>.</li>
+            <li>Они бросают свои башни и идут усиливать давление на замок.</li>
+            <li>К этому моменту враг уже прилично потерял армию в башнях — ему сложнее держать и башни, и замок.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout green" style="margin-top:14px;">
+        Логика этапа: наши мелкие смогут стабильнее держать башни, а больше активных сильных игроков будет работать именно по замку.
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:18px;">
+      <h2>Этап 3. Расширение давления и зачистка</h2>
+      <p class="muted" style="margin-top:0;">
+        Цель: не дать врагу восстановиться, добить проблемные цели, удержать преимущество.
+      </p>
+
+      <div class="grid cols-2">
+        <div>
+          <h3>Что делаем</h3>
+          <ul class="clean">
+            <li>Больше активных сильных игроков работают по замку.</li>
+            <li>Мелкие и средние держат башни и помогают соседям.</li>
+            <li>Топы закрывают проблемные места: где враг продавливает, где не справляются свои.</li>
+            <li>При необходимости — только организованные штурмы пятёрками по ключевым целям.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Правило перераспределения</h3>
+          <ul class="clean">
+            <li>Захвачена твоя башня — помоги в соседней.</li>
+            <li>Захвачены все башни — помоги в замке.</li>
+            <li>Гарнизон цели полон — не беги туда снова, иди на соседнюю цель.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-bottom:18px;">
+      <div class="card">
+        <h2>Ключевые запреты</h2>
+        <ul class="ban">
+          <li><b>Не собирать всю толпу в одну цель</b> — гарнизон ограничен, лишние просто вернутся.</li>
+          <li><b>Не делать штурмы разрозненными одиночками</b> — только пятёрками, которые стоят рядом и заходят вместе.</li>
+          <li><b>Не устраивать лобовые бои на потери</b> — выгоднее истощать врага через башни.</li>
+          <li><b>Не бегать туда-сюда при полном гарнизоне</b> — это потеря времени.</li>
+          <li><b>Не бросать башни слишком рано</b> — переход на замок должен быть по порогу или команде.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Итоговая схема</h2>
+        <div class="stage" style="margin-bottom:14px;">
+          <span class="dot"></span>
+          <b>Подготовка</b>
+          <div class="muted">Разбить по силе, назначить 2 альянса на башню, топ-10 распределить по целям, объяснить правила.</div>
+        </div>
+        <div class="stage" style="margin-bottom:14px;">
+          <span class="dot"></span>
+          <b>Этап 1</b>
+          <div class="muted">Держим башни. Топы &gt;6 млн точечно выбивают замок. Все избегают лобовых потерь.</div>
+        </div>
+        <div class="stage" style="margin-bottom:14px;">
+          <span class="dot"></span>
+          <b>Этап 2</b>
+          <div class="muted">При ~20–25% врага &gt;6 млн идут в замок. При ~30–35% подключаются 5-миллионники.</div>
+        </div>
+        <div class="stage">
+          <span class="dot"></span>
+          <b>Этап 3</b>
+          <div class="muted">Продавливаем замок, мелкие держат башни, топы закрывают проблемные места. Штурмы — только пятёрками.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Главный принцип</h2>
+      <p class="big" style="margin:0;">
+        Выигрывать не одним прямым заходом в замок, а <b>истощением врага через башни</b>
+        и грамотным перераспределением игроков <b>без перегруза гарнизонов</b>.
+      </p>
+      <div class="callout red" style="margin-top:12px;">
+        Помни: игра не рассчитана на мирные КВК. На башнях помещается примерно 20 человек,
+        в замке — максимум около 50. Если люди идут толпой в одну цель, они просто возвращаются назад и тратят время.
+      </div>
+    </div>
+
+    <p class="footer-note">
+      Составлено по расшифровке тактики КВК · Last Asylum: Plague
+    </p>
+  </div>
+</body>
+</html>
