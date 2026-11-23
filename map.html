@@ -207,10 +207,12 @@
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/lz-string@1.5.0/libs/lz-string.min.js"></script>
 <script>
 // ============ КОНФИГ ============
 const IMAGE_URL = 'map.jpg';
 const STORAGE_KEY = 'lastasylum_map_state_v2';
+const SHARE_PREFIX = '#m=';
 const SHAPE_NAMES = ['circle', 'square', 'triangle', 'diamond', 'star', 'hexagon', 'shield', 'cross'];
 const SHAPE_LABELS = {
   circle: 'Круг', square: 'Квадрат', triangle: 'Треугольник',
@@ -236,6 +238,8 @@ for (let i = 0; i < 50; i++) {
   const light = [45, 60, 35, 50, 70][Math.floor(i / 3) % 5];
   COLORS.push(hslToHex(hue, sat, light));
 }
+const COLOR_INDEX = new Map(COLORS.map((c, i) => [c, i]));
+const SHAPE_INDEX = new Map(SHAPE_NAMES.map((s, i) => [s, i]));
 
 // ============ SVG ФИГУРЫ ============
 const SHAPES = {
@@ -267,6 +271,7 @@ let fillVertices = [];
 let fillPreviewLayer = null;
 let lastFillBatch = [];
 let groupDragOrigin = null, groupDragStart = null;
+let lastLegendKey = null;
 
 // ============ КАРТА ============
 const map = L.map('map', { crs: L.CRS.Simple, minZoom: -2, maxZoom: 2 });
@@ -559,7 +564,6 @@ function updateLegend(force = false) {
   });
   updateAllTooltips();
 }
-let lastLegendKey = null;
 
 // ============ ЗАЛИВКА ============
 function pointInPolygon(point, polygon) {
@@ -661,22 +665,82 @@ function undoFill() {
   showToast(`Отменено ${n} маркеров`);
 }
 
-// ============ СОХРАНЕНИЕ / ЭКСПОРТ / ИМПОРТ ============
-function serializeState() {
-  return {
-    version: 2,
-    imageSize: { w: imageWidth, h: imageHeight },
-    markers: markers.map(m => ({
-      lat: m.getLatLng().lat, lng: m.getLatLng().lng,
-      color: m._color, shape: m._shape, label: m._label || ''
-    })),
-    legendLabels: legendLabels
+// ============ ПАКОВКА / РАСПАКОВКА СОСТОЯНИЯ ============
+// Компактный формат:
+// { v:2, w:imageWidth, h:imageHeight, m:[[lat,lng,colorIdx,shapeIdx,label?],...], L:{colorIdx:label,...} }
+// Старый формат (verbose) читается для обратной совместимости.
+
+function packState(onlyUsedLabels) {
+  const data = {
+    v: 2,
+    w: imageWidth,
+    h: imageHeight,
+    m: markers.map(m => {
+      const ll = m.getLatLng();
+      const row = [
+        Math.round(ll.lat),
+        Math.round(ll.lng),
+        COLOR_INDEX.get(m._color) ?? 0,
+        SHAPE_INDEX.get(m._shape) ?? 0
+      ];
+      if (m._label) row.push(m._label);
+      return row;
+    })
   };
+  const usedColors = new Set(markers.map(m => m._color));
+  const L = {};
+  Object.entries(legendLabels).forEach(([color, label]) => {
+    if (!label) return;
+    if (onlyUsedLabels && !usedColors.has(color)) return;
+    const ci = COLOR_INDEX.get(color);
+    if (ci !== undefined) L[ci] = label;
+  });
+  if (Object.keys(L).length) data.L = L;
+  return data;
 }
 
+function unpackState(data) {
+  // Старый verbose-формат
+  if (Array.isArray(data.markers) && data.markers.length && typeof data.markers[0] === 'object') {
+    return {
+      imageSize: data.imageSize || { w: data.w || imageWidth, h: data.h || imageHeight },
+      markers: data.markers.map(m => ({
+        lat: m.lat, lng: m.lng,
+        color: m.color || COLORS[0],
+        shape: m.shape || 'circle',
+        label: m.label || ''
+      })),
+      legendLabels: data.legendLabels || {}
+    };
+  }
+  // Новый компактный формат
+  const out = {
+    imageSize: { w: data.w || imageWidth, h: data.h || imageHeight },
+    markers: [],
+    legendLabels: {}
+  };
+  (data.m || []).forEach(row => {
+    if (!Array.isArray(row) || row.length < 4) return;
+    out.markers.push({
+      lat: row[0], lng: row[1],
+      color: COLORS[row[2]] || COLORS[0],
+      shape: SHAPE_NAMES[row[3]] || 'circle',
+      label: row[4] || ''
+    });
+  });
+  if (data.L && typeof data.L === 'object') {
+    Object.entries(data.L).forEach(([ci, label]) => {
+      const c = COLORS[ci];
+      if (c) out.legendLabels[c] = label;
+    });
+  }
+  return out;
+}
+
+// ============ СОХРАНЕНИЕ / ЭКСПОРТ / ИМПОРТ ============
 function saveState() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeState()));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(packState(false)));
   } catch (e) { console.warn('Не удалось сохранить:', e); }
 }
 
@@ -684,11 +748,11 @@ function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) { updateLegend(true); return; }
-    applyState(JSON.parse(raw), { silent: true });
+    applyUnpacked(unpackState(JSON.parse(raw)), { silent: true });
   } catch (e) { console.warn('Не удалось загрузить:', e); updateLegend(true); }
 }
 
-function applyState(data, opts = {}) {
+function applyUnpacked(data, opts = {}) {
   markers.forEach(m => map.removeLayer(m));
   markers = [];
   selectedMarkers.clear();
@@ -714,14 +778,14 @@ function applyState(data, opts = {}) {
   if (data.legendLabels) Object.assign(legendLabels, data.legendLabels);
 
   (data.markers || []).forEach(m => {
-    createMarker(L.latLng(m.lat * sy, m.lng * sx), m.color || COLORS[0], m.shape || 'circle', m.label || '');
+    createMarker(L.latLng(m.lat * sy, m.lng * sx), m.color, m.shape, m.label);
   });
 
   updateLegend(true);
 }
 
 function doExport() {
-  const blob = new Blob([JSON.stringify(serializeState(), null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(packState(false), null, 2)], { type: 'application/json' });
   const today = new Date().toISOString().slice(0, 10);
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -735,8 +799,9 @@ function doImport(file) {
   reader.onload = (ev) => {
     try {
       const data = JSON.parse(ev.target.result);
-      if (!data || !Array.isArray(data.markers)) throw new Error('Неверный формат файла');
-      applyState(data);
+      const unpacked = unpackState(data);
+      if (!unpacked.markers) throw new Error('Неверный формат файла');
+      applyUnpacked(unpacked);
       saveState();
       showToast('Импорт выполнен');
     } catch (err) { alert('Ошибка импорта: ' + err.message); }
@@ -745,7 +810,7 @@ function doImport(file) {
   reader.readAsText(file);
 }
 
-// ============ ССЫЛКА-ПОДЕЛИТЬСЯ ============
+// ============ ССЫЛКА-ПОДЕЛИТЬСЯ (СЖАТАЯ) ============
 function b64EncodeUnicode(str) {
   return btoa(unescape(encodeURIComponent(str)))
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
@@ -756,16 +821,43 @@ function b64DecodeUnicode(str) {
   return decodeURIComponent(escape(atob(str)));
 }
 
+function encodeForURL(packed) {
+  const json = JSON.stringify(packed);
+  if (typeof LZString !== 'undefined') {
+    return LZString.compressToEncodedURIComponent(json);
+  }
+  // Fallback, если CDN не загрузился
+  return b64EncodeUnicode(json);
+}
+
+function decodeFromURL(encoded) {
+  // Пробуем LZ-string
+  if (typeof LZString !== 'undefined') {
+    try {
+      const json = LZString.decompressFromEncodedURIComponent(encoded);
+      if (json) return JSON.parse(json);
+    } catch (e) { /* идём дальше */ }
+  }
+  // Fallback: base64
+  return JSON.parse(b64DecodeUnicode(encoded));
+}
+
 async function shareLink() {
   try {
-    const data = serializeState();
-    const encoded = b64EncodeUnicode(JSON.stringify(data));
-    const url = location.origin + location.pathname + location.search + '#map=' + encoded;
+    if (typeof LZString === 'undefined') {
+      showToast('Библиотека сжатия не загрузилась — ссылка будет длиннее обычного');
+    }
+    const packed = packState(true); // только используемые подписи
+    const encoded = encodeForURL(packed);
+    const url = location.origin + location.pathname + location.search + SHARE_PREFIX + encoded;
+
+    const info = `Ссылка скопирована · ${url.length.toLocaleString('ru')} символов · ${markers.length} маркеров`;
+
     try {
       await navigator.clipboard.writeText(url);
-      showToast('Ссылка скопирована в буфер обмена');
+      showToast(info);
     } catch {
-      prompt('Скопируйте ссылку:', url);
+      prompt('Скопируйте ссылку (Ctrl+C):', url);
     }
   } catch (e) {
     alert('Ошибка: ' + e.message);
@@ -774,18 +866,34 @@ async function shareLink() {
 
 function loadFromHash() {
   const hash = location.hash;
-  if (!hash || !hash.startsWith('#map=')) return false;
-  try {
-    const encoded = hash.slice(5);
-    const json = b64DecodeUnicode(encoded);
-    const data = JSON.parse(json);
-    applyState(data);
-    history.replaceState(null, '', location.pathname + location.search);
-    return true;
-  } catch (e) {
-    console.warn('Bad share link:', e);
-    return false;
+  // Новый формат: #m=<LZ-compressed>
+  if (hash.startsWith(SHARE_PREFIX)) {
+    try {
+      const encoded = hash.slice(SHARE_PREFIX.length);
+      const data = decodeFromURL(encoded);
+      applyUnpacked(unpackState(data));
+      history.replaceState(null, '', location.pathname + location.search);
+      return true;
+    } catch (e) {
+      console.warn('Bad share link:', e);
+      showToast('Не удалось загрузить расстановку из ссылки');
+      return false;
+    }
   }
+  // Старый формат (для совместимости): #map=<base64-json>
+  if (hash.startsWith('#map=')) {
+    try {
+      const encoded = hash.slice(5);
+      const json = b64DecodeUnicode(encoded);
+      applyUnpacked(unpackState(JSON.parse(json)));
+      history.replaceState(null, '', location.pathname + location.search);
+      return true;
+    } catch (e) {
+      console.warn('Bad legacy share link:', e);
+      return false;
+    }
+  }
+  return false;
 }
 
 // ============ TOAST ============
@@ -794,7 +902,7 @@ function showToast(msg) {
   el.className = 'toast';
   el.textContent = msg;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 2500);
+  setTimeout(() => el.remove(), 2800);
 }
 
 // ============ ПАЛИТРЫ ============
