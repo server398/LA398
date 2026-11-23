@@ -52,7 +52,7 @@
     position: absolute; top: 10px; right: 10px;
     background: rgba(0,0,0,0.9); color: white;
     padding: 12px; border-radius: 8px; z-index: 1000;
-    width: 250px; max-height: calc(100vh - 140px);
+    width: 260px; max-height: calc(100vh - 140px);
     overflow-y: auto;
   }
   .legend-panel h3 {
@@ -74,18 +74,42 @@
 
   .controls {
     position: absolute; bottom: 20px; left: 20px; z-index: 1000;
-    display: flex; gap: 6px; flex-wrap: wrap;
+    display: flex; gap: 6px; flex-wrap: wrap; max-width: 65vw;
   }
   .controls button {
-    padding: 8px 14px; background: #333; color: white;
+    padding: 8px 12px; background: #333; color: white;
     border: 1px solid #555; border-radius: 5px;
-    cursor: pointer; font-size: 13px;
+    cursor: pointer; font-size: 12px;
   }
   .controls button:hover { background: #444; }
-  .controls button.danger { background: #7a2828; }
+  .controls button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .controls button.danger { background: #7a2828; border-color: #8e2f2f; }
   .controls button.danger:hover { background: #8e2f2f; }
-  .controls button.accent { background: #2c5aa0; }
+  .controls button.accent { background: #2c5aa0; border-color: #3670c4; }
   .controls button.accent:hover { background: #3670c4; }
+  .controls button.active { background: #2c5aa0; border-color: #4a9eff; box-shadow: 0 0 0 2px #4a9eff; }
+
+  .fill-panel {
+    position: absolute; top: 160px; left: 20px;
+    background: rgba(0,0,0,0.9); color: white;
+    padding: 15px; border-radius: 8px; z-index: 1000;
+    width: 300px; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+  .fill-panel h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+  .fill-panel p { margin: 0 0 10px; font-size: 12px; opacity: 0.8; line-height: 1.4; }
+  .fill-panel .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .fill-panel label { font-size: 12px; }
+  .fill-panel input[type="number"] {
+    background: #222; border: 1px solid #555; color: white;
+    padding: 4px 6px; border-radius: 4px; width: 70px; margin-left: 4px;
+  }
+  .fill-panel button {
+    padding: 6px 12px; border: 1px solid #555; border-radius: 4px;
+    cursor: pointer; background: #333; color: white; font-size: 12px;
+  }
+  .fill-panel button:hover { background: #444; }
+  .fill-panel button.danger { background: #7a2828; border-color: #8e2f2f; }
+  .fill-panel button.accent { background: #2c5aa0; border-color: #3670c4; }
 
   .popup-colors { display: grid; grid-template-columns: repeat(10, 18px); gap: 2px; margin: 5px 0; }
   .popup-colors .swatch {
@@ -107,6 +131,34 @@
     font-weight: bold; font-size: 10px; margin: 6px 0 2px;
     text-transform: uppercase; opacity: 0.6; letter-spacing: 0.5px;
   }
+  .popup-label-input {
+    width: 100%; padding: 4px 6px; border: 1px solid #555;
+    background: #222; color: #eee; border-radius: 3px;
+    font-size: 12px; box-sizing: border-box;
+  }
+
+  .marker-label {
+    background: rgba(0,0,0,0.85) !important;
+    color: white !important;
+    border: 1px solid rgba(255,255,255,0.25) !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4) !important;
+    padding: 2px 6px !important;
+    font-size: 11px !important;
+    border-radius: 3px !important;
+    white-space: nowrap;
+    font-weight: 500;
+    pointer-events: none;
+  }
+  .marker-label::before { display: none !important; }
+
+  .toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: #2c5aa0; color: white; padding: 10px 20px;
+    border-radius: 5px; z-index: 99999; font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    animation: fadeIn 0.2s;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translate(-50%, -10px); } to { opacity: 1; transform: translate(-50%, 0); } }
 </style>
 </head>
 <body>
@@ -127,10 +179,28 @@
   <div id="legend-list"></div>
 </div>
 
+<div class="fill-panel" id="fill-panel" style="display:none;">
+  <h3>Заливка точками</h3>
+  <p>Кликайте по карте, задавая вершины полигона. Минимум 3 точки. <b>Enter</b> — заполнить, <b>Esc</b> — отмена.</p>
+  <div class="row">
+    <label>Шаг сетки (px): <input type="number" id="fill-step" value="30" min="10" max="200"></label>
+  </div>
+  <div class="row" style="margin-top:10px;">
+    <button id="fill-apply-btn" class="accent">Залить</button>
+    <button id="fill-cancel-btn" class="danger">Отмена</button>
+    <span style="font-size:12px;opacity:0.7;">Точек: <b id="fill-count">0</b></span>
+  </div>
+</div>
+
 <div class="controls">
   <button id="clear-btn" class="danger">Очистить все</button>
+  <button id="delete-selected-btn" class="danger" disabled>Удалить выбранные</button>
   <button id="export-btn" class="accent">Экспорт</button>
   <button id="import-btn" class="accent">Импорт</button>
+  <button id="share-btn" class="accent">Поделиться</button>
+  <button id="fill-btn">Заливка точками</button>
+  <button id="undo-fill-btn">Отменить заливку</button>
+  <button id="labels-btn" class="active">Подписи: вкл</button>
   <input type="file" id="import-file" accept=".json,application/json" style="display:none">
 </div>
 
@@ -139,8 +209,8 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // ============ КОНФИГ ============
-const IMAGE_URL = 'map.jpg';                              // путь к картинке
-const STORAGE_KEY = 'lastasylum_map_state_v1';
+const IMAGE_URL = 'map.jpg';
+const STORAGE_KEY = 'lastasylum_map_state_v2';
 const SHAPE_NAMES = ['circle', 'square', 'triangle', 'diamond', 'star', 'hexagon', 'shield', 'cross'];
 const SHAPE_LABELS = {
   circle: 'Круг', square: 'Квадрат', triangle: 'Треугольник',
@@ -186,22 +256,33 @@ const shapePreviewSvg = (shape, color = '#ccc') =>
 // ============ СОСТОЯНИЕ ============
 let currentColor = COLORS[0];
 let currentShape = 'circle';
-let markers = [];          // L.Marker[]
-let legendLabels = {};     // color -> label
-let imageWidth = 0;
-let imageHeight = 0;
-let lastLegendKey = null;
+let markers = [];
+let legendLabels = {};
+let imageWidth = 0, imageHeight = 0;
+let showLabels = true;
+let selectedMarkers = new Set();
+let nextMarkerId = 1;
+let fillMode = false;
+let fillVertices = [];
+let fillPreviewLayer = null;
+let lastFillBatch = [];
+let groupDragOrigin = null, groupDragStart = null;
 
 // ============ КАРТА ============
 const map = L.map('map', { crs: L.CRS.Simple, minZoom: -2, maxZoom: 2 });
 
 map.on('click', (e) => {
-  createMarker(e.latlng, currentColor, currentShape);
+  if (fillMode) {
+    fillVertices.push(e.latlng);
+    updateFillPreview();
+    return;
+  }
+  createMarker(e.latlng, currentColor, currentShape, '');
+  if (selectedMarkers.size > 0) clearSelection();
   updateLegend();
   saveState();
 });
 
-// Загрузка картинки + автоопределение размеров
 const img = new Image();
 img.onload = () => {
   imageWidth = img.naturalWidth;
@@ -209,7 +290,8 @@ img.onload = () => {
   const bounds = [[0, 0], [imageHeight, imageWidth]];
   L.imageOverlay(IMAGE_URL, bounds).addTo(map);
   map.fitBounds(bounds);
-  loadState();
+  if (!loadFromHash()) loadState();
+  updateAllTooltips();
 };
 img.onerror = () => {
   const el = document.createElement('div');
@@ -219,32 +301,503 @@ img.onerror = () => {
 };
 img.src = IMAGE_URL;
 
-// ============ СОЗДАНИЕ МАРКЕРА ============
-function makeIcon(color, shape) {
-  return L.divIcon({
-    className: '',
-    html: iconSvg(color, shape),
-    iconSize: [28, 28],
-    iconAnchor: [14, 14]
-  });
+// ============ ИКОНКИ ============
+function makeIcon(color, shape, selected) {
+  const svg = iconSvg(color, shape);
+  if (selected) {
+    return L.divIcon({
+      className: '',
+      html: `<div style="position:relative;width:28px;height:28px;">
+        <div style="position:absolute;top:-4px;left:-4px;width:36px;height:36px;border:2px solid #4a9eff;border-radius:50%;box-shadow:0 0 8px #4a9eff;box-sizing:border-box;pointer-events:none;"></div>
+        ${svg}
+      </div>`,
+      iconSize: [28, 28], iconAnchor: [14, 14]
+    });
+  }
+  return L.divIcon({ className: '', html: svg, iconSize: [28, 28], iconAnchor: [14, 14] });
 }
 
-function createMarker(latlng, color, shape) {
-  const marker = L.marker(latlng, { icon: makeIcon(color, shape), draggable: true }).addTo(map);
+function refreshMarkerIcon(marker) {
+  marker.setIcon(makeIcon(marker._color, marker._shape, selectedMarkers.has(marker)));
+}
+
+// ============ МАРКЕРЫ ============
+function createMarker(latlng, color, shape, label) {
+  const marker = L.marker(latlng, { icon: makeIcon(color, shape, false), draggable: true }).addTo(map);
+  marker._id = nextMarkerId++;
   marker._color = color;
   marker._shape = shape;
+  marker._label = label || '';
+  marker._selected = false;
 
   marker.on('click', (e) => {
     L.DomEvent.stopPropagation(e);
+    if (fillMode) {
+      fillVertices.push(e.latlng);
+      updateFillPreview();
+      return;
+    }
+    if (e.originalEvent && e.originalEvent.shiftKey) {
+      toggleSelection(marker);
+      return;
+    }
     openMarkerPopup(marker);
   });
-  marker.on('dragend', () => saveState());
+
+  marker.on('dragstart', () => {
+    if (selectedMarkers.has(marker) && selectedMarkers.size > 1) {
+      groupDragOrigin = marker.getLatLng();
+      groupDragStart = {};
+      selectedMarkers.forEach(m => { groupDragStart[m._id] = m.getLatLng(); });
+    } else {
+      groupDragStart = null;
+    }
+  });
+
+  marker.on('drag', () => {
+    if (groupDragStart && groupDragOrigin) {
+      const cur = marker.getLatLng();
+      const dLat = cur.lat - groupDragOrigin.lat;
+      const dLng = cur.lng - groupDragOrigin.lng;
+      selectedMarkers.forEach(m => {
+        if (m !== marker) {
+          const s = groupDragStart[m._id];
+          if (s) m.setLatLng([s.lat + dLat, s.lng + dLng]);
+        }
+      });
+    }
+  });
+
+  marker.on('dragend', () => {
+    groupDragStart = null;
+    groupDragOrigin = null;
+    saveState();
+  });
 
   markers.push(marker);
+  updateMarkerTooltip(marker);
   return marker;
 }
 
-// ============ ПАЛИТРЫ ВЕРХНЕЙ ПАНЕЛИ ============
+// ============ ПОДПИСИ ============
+function updateMarkerTooltip(marker) {
+  marker.unbindTooltip();
+  if (!showLabels) return;
+  const label = marker._label || legendLabels[marker._color] || '';
+  if (!label) return;
+  marker.bindTooltip(label, {
+    permanent: true, direction: 'bottom',
+    className: 'marker-label', offset: [0, 10], interactive: false
+  });
+}
+
+function updateAllTooltips() {
+  markers.forEach(m => updateMarkerTooltip(m));
+}
+
+// ============ ВЫДЕЛЕНИЕ ============
+function toggleSelection(marker) {
+  if (selectedMarkers.has(marker)) {
+    selectedMarkers.delete(marker);
+    marker._selected = false;
+    refreshMarkerIcon(marker);
+  } else {
+    selectedMarkers.add(marker);
+    marker._selected = true;
+    refreshMarkerIcon(marker);
+  }
+  updateSelectionUI();
+}
+
+function clearSelection() {
+  selectedMarkers.forEach(m => {
+    m._selected = false;
+    refreshMarkerIcon(m);
+  });
+  selectedMarkers.clear();
+  updateSelectionUI();
+}
+
+function updateSelectionUI() {
+  const btn = document.getElementById('delete-selected-btn');
+  const n = selectedMarkers.size;
+  btn.textContent = n > 0 ? `Удалить выбранные (${n})` : 'Удалить выбранные';
+  btn.disabled = n === 0;
+}
+
+function deleteSelectedMarkers() {
+  if (selectedMarkers.size === 0) return;
+  if (!confirm(`Удалить ${selectedMarkers.size} маркеров?`)) return;
+  selectedMarkers.forEach(m => {
+    map.removeLayer(m);
+    markers = markers.filter(mk => mk !== m);
+  });
+  selectedMarkers.clear();
+  updateSelectionUI();
+  updateLegend();
+  saveState();
+}
+
+// ============ ПОПАП МАРКЕРА ============
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+
+function openMarkerPopup(marker) {
+  let html = '<div style="min-width:235px;">';
+  html += '<div class="popup-title">Цвет</div><div class="popup-colors">';
+  COLORS.forEach(c => {
+    const sel = c === marker._color ? 'box-shadow:0 0 0 2px #4a9eff;' : '';
+    html += `<div class="swatch" data-color="${c}" style="background:${c};${sel}"></div>`;
+  });
+  html += '</div><div class="popup-title">Тип</div><div class="popup-shapes">';
+  SHAPE_NAMES.forEach(s => {
+    const sel = s === marker._shape ? 'border-color:#4a9eff;background:#333;' : '';
+    html += `<div class="shape-btn" data-shape="${s}" style="${sel}">${shapePreviewSvg(s, marker._color)}</div>`;
+  });
+  html += '</div>';
+  html += '<div class="popup-title">Подпись</div>';
+  html += `<input type="text" class="popup-label-input" value="${escapeHtml(marker._label || '')}" placeholder="Например: Северные ворота">`;
+  html += '<button class="popup-del" style="margin-top:10px;width:100%;padding:6px;background:#c0392b;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">Удалить маркер</button>';
+  html += '</div>';
+
+  const popup = L.popup({ closeButton: true, autoClose: true, maxWidth: 320 })
+    .setLatLng(marker.getLatLng()).setContent(html).openOn(map);
+
+  setTimeout(() => {
+    const container = popup.getElement();
+    if (!container) return;
+
+    container.querySelectorAll('.popup-colors .swatch').forEach(sw => {
+      sw.addEventListener('click', () => {
+        marker._color = sw.dataset.color;
+        refreshMarkerIcon(marker);
+        updateMarkerTooltip(marker);
+        updateLegend();
+        saveState();
+        container.querySelectorAll('.popup-colors .swatch').forEach(s => {
+          s.style.boxShadow = s.dataset.color === marker._color ? '0 0 0 2px #4a9eff' : '';
+        });
+        container.querySelectorAll('.popup-shapes .shape-btn').forEach(btn => {
+          btn.innerHTML = shapePreviewSvg(btn.dataset.shape, marker._color);
+        });
+      });
+    });
+
+    container.querySelectorAll('.popup-shapes .shape-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        marker._shape = btn.dataset.shape;
+        refreshMarkerIcon(marker);
+        saveState();
+        container.querySelectorAll('.popup-shapes .shape-btn').forEach(b => {
+          b.style.borderColor = b.dataset.shape === marker._shape ? '#4a9eff' : '';
+          b.style.background = b.dataset.shape === marker._shape ? '#333' : '';
+        });
+      });
+    });
+
+    const labelInput = container.querySelector('.popup-label-input');
+    if (labelInput) {
+      labelInput.addEventListener('input', () => {
+        marker._label = labelInput.value;
+        updateMarkerTooltip(marker);
+        saveState();
+      });
+    }
+
+    const delBtn = container.querySelector('.popup-del');
+    if (delBtn) delBtn.addEventListener('click', () => {
+      map.removeLayer(marker);
+      markers = markers.filter(m => m !== marker);
+      selectedMarkers.delete(marker);
+      map.closePopup();
+      updateSelectionUI();
+      updateLegend();
+      saveState();
+    });
+  }, 10);
+}
+
+// ============ ЛЕГЕНДА ============
+function updateLegend(force = false) {
+  const usedSet = new Set(markers.map(m => m._color));
+  const usedKey = Array.from(usedSet).sort().join(',');
+  if (!force && usedKey === lastLegendKey) {
+    updateAllTooltips();
+    return;
+  }
+  lastLegendKey = usedKey;
+
+  const el = document.getElementById('legend-list');
+  el.innerHTML = '';
+
+  if (usedSet.size === 0) {
+    el.innerHTML = '<div class="legend-empty">Маркеров пока нет. Кликните по карте, чтобы поставить.</div>';
+    updateAllTooltips();
+    return;
+  }
+
+  COLORS.forEach((c, idx) => {
+    if (!usedSet.has(c)) return;
+    const sample = markers.find(m => m._color === c);
+    const shape = sample ? sample._shape : 'circle';
+    const label = legendLabels[c] !== undefined ? legendLabels[c] : `Цвет ${idx + 1}`;
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+    row.innerHTML = `
+      <div class="swatch">${shapePreviewSvg(shape, c)}</div>
+      <input type="text" value="${escapeHtml(label)}" data-color="${c}" placeholder="Название...">
+    `;
+    el.appendChild(row);
+    row.querySelector('input').addEventListener('input', (e) => {
+      legendLabels[c] = e.target.value;
+      markers.filter(m => m._color === c).forEach(m => updateMarkerTooltip(m));
+      saveState();
+    });
+  });
+  updateAllTooltips();
+}
+let lastLegendKey = null;
+
+// ============ ЗАЛИВКА ============
+function pointInPolygon(point, polygon) {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i];
+    const [xj, yj] = polygon[j];
+    const intersect = ((yi > point[1]) !== (yj > point[1])) &&
+      (point[0] < (xj - xi) * (point[1] - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function updateFillPreview() {
+  if (fillPreviewLayer) map.removeLayer(fillPreviewLayer);
+  if (fillVertices.length === 0) { fillPreviewLayer = null; updateFillCount(); return; }
+  if (fillVertices.length < 3) {
+    fillPreviewLayer = L.polyline(fillVertices, { color: '#4a9eff', weight: 2, dashArray: '5,5' }).addTo(map);
+  } else {
+    fillPreviewLayer = L.polygon(fillVertices, {
+      color: '#4a9eff', weight: 2, fillOpacity: 0.15, dashArray: '5,5'
+    }).addTo(map);
+  }
+  updateFillCount();
+}
+
+function updateFillCount() {
+  const el = document.getElementById('fill-count');
+  if (el) el.textContent = fillVertices.length;
+}
+
+function startFillMode() {
+  fillMode = true;
+  fillVertices = [];
+  document.body.style.cursor = 'crosshair';
+  map.doubleClickZoom.disable();
+  markers.forEach(m => m.dragging.disable());
+  document.getElementById('fill-panel').style.display = '';
+  document.getElementById('fill-btn').classList.add('active');
+  updateFillCount();
+}
+
+function cancelFillMode() {
+  fillMode = false;
+  fillVertices = [];
+  document.body.style.cursor = '';
+  map.doubleClickZoom.enable();
+  markers.forEach(m => m.dragging.enable());
+  if (fillPreviewLayer) { map.removeLayer(fillPreviewLayer); fillPreviewLayer = null; }
+  document.getElementById('fill-panel').style.display = 'none';
+  document.getElementById('fill-btn').classList.remove('active');
+}
+
+function finishFillMode() {
+  if (fillVertices.length < 3) {
+    alert('Нужно минимум 3 точки для полигона');
+    return;
+  }
+  const step = Math.max(5, parseInt(document.getElementById('fill-step').value) || 30);
+  const poly = fillVertices.slice();
+  const poly2D = poly.map(p => [p.lng, p.lat]);
+  const xs = poly.map(p => p.lng);
+  const ys = poly.map(p => p.lat);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+
+  const batch = [];
+  for (let y = minY + step / 2; y < maxY; y += step) {
+    for (let x = minX + step / 2; x < maxX; x += step) {
+      if (pointInPolygon([x, y], poly2D)) {
+        batch.push(createMarker(L.latLng(y, x), currentColor, currentShape, ''));
+      }
+    }
+  }
+
+  lastFillBatch = batch;
+  cancelFillMode();
+  updateLegend();
+  saveState();
+  showToast(`Добавлено маркеров: ${batch.length}`);
+}
+
+function undoFill() {
+  if (!lastFillBatch || lastFillBatch.length === 0) {
+    showToast('Нечего отменять');
+    return;
+  }
+  const n = lastFillBatch.length;
+  lastFillBatch.forEach(m => {
+    map.removeLayer(m);
+    markers = markers.filter(mk => mk !== m);
+    selectedMarkers.delete(m);
+  });
+  lastFillBatch = [];
+  updateSelectionUI();
+  updateLegend();
+  saveState();
+  showToast(`Отменено ${n} маркеров`);
+}
+
+// ============ СОХРАНЕНИЕ / ЭКСПОРТ / ИМПОРТ ============
+function serializeState() {
+  return {
+    version: 2,
+    imageSize: { w: imageWidth, h: imageHeight },
+    markers: markers.map(m => ({
+      lat: m.getLatLng().lat, lng: m.getLatLng().lng,
+      color: m._color, shape: m._shape, label: m._label || ''
+    })),
+    legendLabels: legendLabels
+  };
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeState()));
+  } catch (e) { console.warn('Не удалось сохранить:', e); }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) { updateLegend(true); return; }
+    applyState(JSON.parse(raw), { silent: true });
+  } catch (e) { console.warn('Не удалось загрузить:', e); updateLegend(true); }
+}
+
+function applyState(data, opts = {}) {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  selectedMarkers.clear();
+  legendLabels = {};
+  updateSelectionUI();
+
+  const srcSize = data.imageSize || { w: imageWidth, h: imageHeight };
+  let sx = 1, sy = 1;
+  if (srcSize.w && srcSize.h && imageWidth && imageHeight &&
+      (srcSize.w !== imageWidth || srcSize.h !== imageHeight)) {
+    if (!opts.silent) {
+      const r1 = srcSize.w / srcSize.h, r2 = imageWidth / imageHeight;
+      if (Math.abs(r1 - r2) > 0.05) {
+        if (!confirm('Пропорции map.jpg отличаются от исходных. Координаты будут масштабированы, но могут быть неточными. Продолжить?')) {
+          updateLegend(true); return;
+        }
+      }
+    }
+    sx = imageWidth / srcSize.w;
+    sy = imageHeight / srcSize.h;
+  }
+
+  if (data.legendLabels) Object.assign(legendLabels, data.legendLabels);
+
+  (data.markers || []).forEach(m => {
+    createMarker(L.latLng(m.lat * sy, m.lng * sx), m.color || COLORS[0], m.shape || 'circle', m.label || '');
+  });
+
+  updateLegend(true);
+}
+
+function doExport() {
+  const blob = new Blob([JSON.stringify(serializeState(), null, 2)], { type: 'application/json' });
+  const today = new Date().toISOString().slice(0, 10);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `lastasylum-map-${today}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function doImport(file) {
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data || !Array.isArray(data.markers)) throw new Error('Неверный формат файла');
+      applyState(data);
+      saveState();
+      showToast('Импорт выполнен');
+    } catch (err) { alert('Ошибка импорта: ' + err.message); }
+  };
+  reader.onerror = () => alert('Не удалось прочитать файл');
+  reader.readAsText(file);
+}
+
+// ============ ССЫЛКА-ПОДЕЛИТЬСЯ ============
+function b64EncodeUnicode(str) {
+  return btoa(unescape(encodeURIComponent(str)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+function b64DecodeUnicode(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  return decodeURIComponent(escape(atob(str)));
+}
+
+async function shareLink() {
+  try {
+    const data = serializeState();
+    const encoded = b64EncodeUnicode(JSON.stringify(data));
+    const url = location.origin + location.pathname + location.search + '#map=' + encoded;
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('Ссылка скопирована в буфер обмена');
+    } catch {
+      prompt('Скопируйте ссылку:', url);
+    }
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+function loadFromHash() {
+  const hash = location.hash;
+  if (!hash || !hash.startsWith('#map=')) return false;
+  try {
+    const encoded = hash.slice(5);
+    const json = b64DecodeUnicode(encoded);
+    const data = JSON.parse(json);
+    applyState(data);
+    history.replaceState(null, '', location.pathname + location.search);
+    return true;
+  } catch (e) {
+    console.warn('Bad share link:', e);
+    return false;
+  }
+}
+
+// ============ TOAST ============
+function showToast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+
+// ============ ПАЛИТРЫ ============
 function buildPalette() {
   const el = document.getElementById('palette');
   el.innerHTML = '';
@@ -282,216 +835,59 @@ function buildShapesBar() {
 buildPalette();
 buildShapesBar();
 
-// ============ ПОПАП МАРКЕРА ============
-function openMarkerPopup(marker) {
-  let html = '<div style="min-width:235px;">';
-  html += '<div class="popup-title">Цвет</div><div class="popup-colors">';
-  COLORS.forEach(c => {
-    const sel = c === marker._color ? 'box-shadow:0 0 0 2px #4a9eff;' : '';
-    html += `<div class="swatch" data-color="${c}" style="background:${c};${sel}"></div>`;
-  });
-  html += '</div><div class="popup-title">Тип</div><div class="popup-shapes">';
-  SHAPE_NAMES.forEach(s => {
-    const sel = s === marker._shape ? 'border-color:#4a9eff;background:#333;' : '';
-    html += `<div class="shape-btn" data-shape="${s}" style="${sel}">${shapePreviewSvg(s, marker._color)}</div>`;
-  });
-  html += '</div>';
-  html += '<button class="popup-del" style="margin-top:8px;width:100%;padding:6px;background:#c0392b;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">Удалить маркер</button>';
-  html += '</div>';
-
-  const popup = L.popup({ closeButton: true, autoClose: true, maxWidth: 320 })
-    .setLatLng(marker.getLatLng())
-    .setContent(html)
-    .openOn(map);
-
-  setTimeout(() => {
-    const container = popup.getElement();
-    if (!container) return;
-
-    container.querySelectorAll('.popup-colors .swatch').forEach(sw => {
-      sw.addEventListener('click', () => {
-        marker._color = sw.dataset.color;
-        marker.setIcon(makeIcon(marker._color, marker._shape));
-        updateLegend();
-        saveState();
-        openMarkerPopup(marker);
-      });
-    });
-
-    container.querySelectorAll('.popup-shapes .shape-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        marker._shape = btn.dataset.shape;
-        marker.setIcon(makeIcon(marker._color, marker._shape));
-        saveState();
-        openMarkerPopup(marker);
-      });
-    });
-
-    const delBtn = container.querySelector('.popup-del');
-    if (delBtn) delBtn.addEventListener('click', () => {
-      map.removeLayer(marker);
-      markers = markers.filter(m => m !== marker);
-      map.closePopup();
-      updateLegend();
-      saveState();
-    });
-  }, 0);
-}
-
-// ============ ЛЕГЕНДА ============
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, ch => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[ch]));
-}
-
-function updateLegend(force = false) {
-  const usedSet = new Set(markers.map(m => m._color));
-  const usedKey = Array.from(usedSet).sort().join(',');
-  if (!force && usedKey === lastLegendKey) return;
-  lastLegendKey = usedKey;
-
-  const el = document.getElementById('legend-list');
-  el.innerHTML = '';
-
-  if (usedSet.size === 0) {
-    el.innerHTML = '<div class="legend-empty">Маркеров пока нет. Кликните по карте, чтобы поставить.</div>';
-    return;
-  }
-
-  COLORS.forEach((c, idx) => {
-    if (!usedSet.has(c)) return;
-    const sample = markers.find(m => m._color === c);
-    const shape = sample ? sample._shape : 'circle';
-    const label = legendLabels[c] !== undefined ? legendLabels[c] : `Цвет ${idx + 1}`;
-    const row = document.createElement('div');
-    row.className = 'legend-row';
-    row.innerHTML = `
-      <div class="swatch">${shapePreviewSvg(shape, c)}</div>
-      <input type="text" value="${escapeHtml(label)}" data-color="${c}" placeholder="Название...">
-    `;
-    el.appendChild(row);
-    row.querySelector('input').addEventListener('input', (e) => {
-      legendLabels[c] = e.target.value;
-      saveState();
-    });
-  });
-}
-
-// ============ СОХРАНЕНИЕ / ЭКСПОРТ / ИМПОРТ ============
-function serializeState() {
-  return {
-    version: 1,
-    imageSize: { w: imageWidth, h: imageHeight },
-    markers: markers.map(m => ({
-      lat: m.getLatLng().lat,
-      lng: m.getLatLng().lng,
-      color: m._color,
-      shape: m._shape
-    })),
-    legendLabels: legendLabels
-  };
-}
-
-function saveState() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeState()));
-  } catch (e) {
-    console.warn('Не удалось сохранить состояние:', e);
-  }
-}
-
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) { updateLegend(true); return; }
-    applyState(JSON.parse(raw), { silent: true });
-  } catch (e) {
-    console.warn('Не удалось загрузить состояние:', e);
-    updateLegend(true);
-  }
-}
-
-function applyState(data, opts = {}) {
-  markers.forEach(m => map.removeLayer(m));
-  markers = [];
-  legendLabels = {};
-
-  // Масштабирование координат, если картинка изменилась
-  const srcSize = data.imageSize || { w: imageWidth, h: imageHeight };
-  let sx = 1, sy = 1;
-  if (srcSize.w && srcSize.h && imageWidth && imageHeight) {
-    if (srcSize.w !== imageWidth || srcSize.h !== imageHeight) {
-      if (!opts.silent) {
-        const ratio1 = srcSize.w / srcSize.h;
-        const ratio2 = imageWidth / imageHeight;
-        if (Math.abs(ratio1 - ratio2) > 0.05) {
-          if (!confirm('Пропорции map.jpg отличаются от исходных. Координаты будут масштабированы, но позиции могут быть неточными. Продолжить?')) {
-            updateLegend(true);
-            return;
-          }
-        }
-      }
-      sx = imageWidth / srcSize.w;
-      sy = imageHeight / srcSize.h;
-    }
-  }
-
-  if (data.legendLabels) Object.assign(legendLabels, data.legendLabels);
-
-  (data.markers || []).forEach(m => {
-    createMarker(L.latLng(m.lat * sy, m.lng * sx), m.color || COLORS[0], m.shape || 'circle');
-  });
-
-  updateLegend(true);
-}
-
-function doExport() {
-  const data = serializeState();
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const today = new Date().toISOString().slice(0, 10);
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `lastasylum-map-${today}.json`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-
-function doImport(file) {
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    try {
-      const data = JSON.parse(ev.target.result);
-      if (!data || !Array.isArray(data.markers)) throw new Error('Неверный формат файла');
-      applyState(data);
-      saveState();
-    } catch (err) {
-      alert('Ошибка импорта: ' + err.message);
-    }
-  };
-  reader.onerror = () => alert('Не удалось прочитать файл');
-  reader.readAsText(file);
-}
-
 // ============ КНОПКИ ============
 document.getElementById('clear-btn').addEventListener('click', () => {
   if (markers.length === 0) return;
   if (!confirm('Удалить все маркеры? (Названия в легенде сохранятся)')) return;
   markers.forEach(m => map.removeLayer(m));
   markers = [];
+  selectedMarkers.clear();
+  updateSelectionUI();
   updateLegend();
   saveState();
 });
 
+document.getElementById('delete-selected-btn').addEventListener('click', deleteSelectedMarkers);
 document.getElementById('export-btn').addEventListener('click', doExport);
-document.getElementById('import-btn').addEventListener('click', () => {
-  document.getElementById('import-file').click();
-});
+document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-file').click());
 document.getElementById('import-file').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (file) doImport(file);
   e.target.value = '';
 });
+document.getElementById('share-btn').addEventListener('click', shareLink);
+document.getElementById('fill-btn').addEventListener('click', () => {
+  if (fillMode) cancelFillMode();
+  else startFillMode();
+});
+document.getElementById('fill-apply-btn').addEventListener('click', finishFillMode);
+document.getElementById('fill-cancel-btn').addEventListener('click', cancelFillMode);
+document.getElementById('undo-fill-btn').addEventListener('click', undoFill);
+document.getElementById('labels-btn').addEventListener('click', (e) => {
+  showLabels = !showLabels;
+  e.target.textContent = showLabels ? 'Подписи: вкл' : 'Подписи: выкл';
+  e.target.classList.toggle('active', showLabels);
+  updateAllTooltips();
+});
+
+// ============ КЛАВИАТУРА ============
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+    if (e.key === 'Escape') e.target.blur();
+    return;
+  }
+  if (e.key === 'Escape') {
+    map.closePopup();
+    if (fillMode) cancelFillMode();
+    else if (selectedMarkers.size > 0) clearSelection();
+  } else if (e.key === 'Enter' && fillMode) {
+    finishFillMode();
+  } else if (e.key === 'Delete' && selectedMarkers.size > 0) {
+    deleteSelectedMarkers();
+  }
+});
+
+updateSelectionUI();
 </script>
 </body>
 </html>
