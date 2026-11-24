@@ -57,6 +57,22 @@
     box-shadow: 0 0 0 1px #000, 0 0 0 2px white;
   }
 
+  /* ====== ПАНЕЛЬ ЦИФР ====== */
+  .numbers-panel {
+    position: absolute; top: 180px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.92); color: white; padding: 8px;
+    border-radius: 8px; z-index: 1000; display: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  .numbers-panel.active { display: flex; gap: 4px; }
+  .num-btn {
+    width: 28px; height: 28px; cursor: pointer; background: #222;
+    border: 1px solid #555; border-radius: 4px; color: white;
+    font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center;
+  }
+  .num-btn:hover { background: #444; }
+  .num-btn.selected { border-color: #4a9eff; background: #2c5aa0; box-shadow: 0 0 0 2px #4a9eff; }
+
   /* ====== ЛЕГЕНДА ====== */
   .legend-panel {
     position: absolute; top: 10px; right: 10px;
@@ -130,30 +146,6 @@
   .modal-close { text-align: right; margin-top: 10px; }
   .modal-close button { padding: 8px 16px; background: #333; border: 1px solid #555; color: white; border-radius: 4px; cursor: pointer; }
 
-  /* ====== ПАНЕЛЬ ЗАЛИВКИ ====== */
-  .fill-panel {
-    position: absolute; top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(20,20,20,0.95); color: white;
-    padding: 15px; border-radius: 8px; z-index: 2000;
-    width: 90vw; max-width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,0.8);
-    border: 1px solid #444;
-  }
-  .fill-panel h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
-  .fill-panel p { margin: 0 0 12px; font-size: 12px; opacity: 0.8; line-height: 1.4; }
-  .fill-panel .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
-  .fill-panel label { font-size: 12px; }
-  .fill-panel input[type="number"] {
-    background: #222; border: 1px solid #555; color: white;
-    padding: 4px 6px; border-radius: 4px; width: 70px; margin-left: 4px;
-  }
-  .fill-panel button {
-    padding: 6px 12px; border: 1px solid #555; border-radius: 4px;
-    cursor: pointer; background: #333; color: white; font-size: 12px;
-  }
-  .fill-panel button.danger { background: #7a2828; border-color: #8e2f2f; }
-  .fill-panel button.accent { background: #2c5aa0; border-color: #3670c4; }
-
   /* ====== ПОПАПЫ И ТУЛТИПЫ ====== */
   .popup-colors { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; margin: 5px 0; }
   .popup-colors .swatch {
@@ -225,6 +217,19 @@
   </div>
 </div>
 
+<!-- Панель цифр -->
+<div class="numbers-panel" id="numbers-panel">
+  <div class="num-btn selected" data-num="1">1</div>
+  <div class="num-btn" data-num="2">2</div>
+  <div class="num-btn" data-num="3">3</div>
+  <div class="num-btn" data-num="4">4</div>
+  <div class="num-btn" data-num="5">5</div>
+  <div class="num-btn" data-num="6">6</div>
+  <div class="num-btn" data-num="7">7</div>
+  <div class="num-btn" data-num="8">8</div>
+  <div class="num-btn" data-num="9">9</div>
+</div>
+
 <!-- Легенда -->
 <div class="legend-panel hidden" id="legend-panel">
   <div class="legend-header">
@@ -240,7 +245,7 @@
     <h3>Поделиться картой</h3>
     <div class="share-option" id="share-short-link">
       <h4>🔗 Короткая ссылка (внутри)</h4>
-      <p>Подходит для небольших карт (до ~500 маркеров). Данные зашифрованы прямо в ссылке.</p>
+      <p>Подходит для небольших карт (до ~500 элементов). Данные зашифрованы прямо в ссылке.</p>
     </div>
     <div class="share-option" id="share-file-link">
       <h4>📂 Ссылка на файл (рекомендуется)</h4>
@@ -253,15 +258,15 @@
 </div>
 
 <!-- Панель заливки -->
-<div class="fill-panel" id="fill-panel" style="display:none;">
-  <h3>Заливка точками</h3>
-  <p>Кликайте по карте, задавая вершины полигона. <b>Enter</b> — заполнить, <b>Esc</b> — отмена.</p>
-  <div class="row">
-    <label>Шаг сетки: <input type="number" id="fill-step" value="30" min="10" max="100"></label>
+<div class="fill-panel" id="fill-panel" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(20,20,20,0.95); color:white; padding:15px; border-radius:8px; z-index:2000; width:90vw; max-width:340px; box-shadow:0 8px 32px rgba(0,0,0,0.8); border:1px solid #444;">
+  <h3 style="margin:0 0 8px; font-size:14px;">Заливка точками</h3>
+  <p style="margin:0 0 12px; font-size:12px; opacity:0.8;">Кликайте по карте, задавая вершины. <b>Enter</b> — заполнить, <b>Esc</b> — отмена.</p>
+  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+    <label style="font-size:12px;">Шаг сетки: <input type="number" id="fill-step" value="30" min="10" max="100" style="background:#222; border:1px solid #555; color:white; padding:4px; border-radius:4px; width:70px; margin-left:4px;"></label>
   </div>
-  <div class="row" style="margin-bottom:0;">
-    <button id="fill-apply-btn" class="accent">Залить</button>
-    <button id="fill-cancel-btn" class="danger">Отмена</button>
+  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+    <button id="fill-apply-btn" style="padding:6px 12px; border:1px solid #3670c4; border-radius:4px; cursor:pointer; background:#2c5aa0; color:white; font-size:12px;">Залить</button>
+    <button id="fill-cancel-btn" style="padding:6px 12px; border:1px solid #8e2f2f; border-radius:4px; cursor:pointer; background:#7a2828; color:white; font-size:12px;">Отмена</button>
     <span style="font-size:12px;opacity:0.7;margin-left:auto;">Точек: <b id="fill-count">0</b></span>
   </div>
 </div>
@@ -272,6 +277,12 @@
   <button id="toggle-legend-btn" class="accent">📖 Легенда</button>
   <button id="toggle-edit-btn" class="mode-btn edit">🔓 Ред.</button>
   <button id="labels-btn" class="active">🏷 Подписи</button>
+  
+  <!-- Новые кнопки -->
+  <button id="tool-marker-btn" class="accent active">📍 Маркеры</button>
+  <button id="tool-arrow-btn">➡️ Стрелки</button>
+  <button id="tool-number-btn">🔢 Цифры</button>
+
   <button id="share-btn" class="accent">🔗 Поделиться</button>
   <button id="export-btn">⬇️ Экспорт</button>
   <button id="import-btn">⬆️ Импорт</button>
@@ -284,19 +295,15 @@
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
 <script src="https://unpkg.com/lz-string@1.5.0/libs/lz-string.min.js"></script>
 <script>
 // ============ КОНФИГ ============
 const IMAGE_URL = 'map.jpg';
-const STORAGE_KEY = 'lastasylum_map_state_v2';
+const STORAGE_KEY = 'lastasylum_map_state_v3'; // Обновили версию
 const SHARE_PREFIX = '#m=';
-const URL_PARAM_KEY = 'config'; // ?config=file.json
+const URL_PARAM_KEY = 'config';
 const SHAPE_NAMES = ['circle', 'square', 'triangle', 'diamond', 'star', 'hexagon', 'shield', 'cross'];
-const SHAPE_LABELS = {
-  circle: 'Круг', square: 'Квадрат', triangle: 'Треугольник',
-  diamond: 'Ромб', star: 'Звезда', hexagon: 'Шестиугольник',
-  shield: 'Щит', cross: 'Крест'
-};
 
 // ============ 50 ЦВЕТОВ ============
 function hslToHex(h, s, l) {
@@ -338,7 +345,11 @@ const shapePreviewSvg = (shape, color = '#ccc') =>
 // ============ СОСТОЯНИЕ ============
 let currentColor = COLORS[0];
 let currentShape = 'circle';
+let currentTool = 'marker'; // 'marker', 'arrow', 'number'
+let currentNumber = 1;
 let markers = [];
+let arrows = [];
+let numbers = [];
 let legendLabels = {};
 let imageWidth = 0, imageHeight = 0;
 let showLabels = true;
@@ -352,6 +363,9 @@ let lastFillBatch = [];
 let groupDragOrigin = null, groupDragStart = null;
 let lastLegendKey = null;
 
+let arrowStart = null; // Для рисования стрелок
+let tempArrowLine = null;
+
 // ============ КАРТА ============
 const map = L.map('map', { crs: L.CRS.Simple, minZoom: -2, maxZoom: 2, zoomControl: false });
 L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -363,6 +377,19 @@ map.on('click', (e) => {
     updateFillPreview();
     return;
   }
+
+  if (currentTool === 'arrow') {
+    handleArrowClick(e.latlng);
+    return;
+  }
+
+  if (currentTool === 'number') {
+    createNumber(e.latlng, currentNumber, currentColor);
+    saveState();
+    return;
+  }
+
+  // По умолчанию: маркер
   createMarker(e.latlng, currentColor, currentShape, '');
   if (selectedMarkers.size > 0) clearSelection();
   updateLegend();
@@ -377,7 +404,6 @@ img.onload = () => {
   L.imageOverlay(IMAGE_URL, bounds).addTo(map);
   map.fitBounds(bounds);
   
-  // Приоритет загрузки: 1. ?config=file.json  2. #m=hash  3. localStorage
   const urlParams = new URLSearchParams(window.location.search);
   const configFile = urlParams.get(URL_PARAM_KEY);
 
@@ -395,25 +421,111 @@ img.onerror = () => {
 };
 img.src = IMAGE_URL;
 
-// ============ ЗАГРУЗКА ИЗ ФАЙЛА (URL PARAM) ============
-async function loadFromConfigFile(filename) {
-  try {
-    showToast('Загрузка конфигурации...');
-    // Добавляем таймстамп, чтобы браузер не кешировал старую версию файла
-    const res = await fetch(`${filename}?t=${Date.now()}`);
-    if (!res.ok) throw new Error(`Файл не найден (HTTP ${res.status})`);
-    const data = await res.json();
-    applyUnpacked(unpackState(data), { silent: true });
-    showToast(`Карта загружена из файла: ${filename}`);
-  } catch (err) {
-    console.error(err);
-    showToast(`Ошибка загрузки: ${err.message}`);
-    // Если файл не загрузился, пробуем локальное сохранение
-    loadState();
+// ============ ИНСТРУМЕНТЫ ============
+function switchTool(tool) {
+  currentTool = tool;
+  document.getElementById('tool-marker-btn').classList.toggle('active', tool === 'marker');
+  document.getElementById('tool-arrow-btn').classList.toggle('active', tool === 'arrow');
+  document.getElementById('tool-number-btn').classList.toggle('active', tool === 'number');
+  
+  const numPanel = document.getElementById('numbers-panel');
+  if (tool === 'number') {
+    numPanel.classList.add('active');
+  } else {
+    numPanel.classList.remove('active');
+  }
+
+  // Сброс незавершенных действий
+  if (tool !== 'arrow' && arrowStart) {
+    arrowStart = null;
+    if (tempArrowLine) { map.removeLayer(tempArrowLine); tempArrowLine = null; }
+  }
+  
+  document.body.style.cursor = tool === 'marker' ? '' : 'crosshair';
+}
+
+document.getElementById('tool-marker-btn').addEventListener('click', () => switchTool('marker'));
+document.getElementById('tool-arrow-btn').addEventListener('click', () => switchTool('arrow'));
+document.getElementById('tool-number-btn').addEventListener('click', () => switchTool('number'));
+
+// ============ ЛОГИКА СТРЕЛОК ============
+function handleArrowClick(latlng) {
+  if (!arrowStart) {
+    arrowStart = latlng;
+    if (tempArrowLine) map.removeLayer(tempArrowLine);
+    tempArrowLine = L.polyline([arrowStart, arrowStart], { color: currentColor, weight: 4, opacity: 0.6 }).addTo(map);
+  } else {
+    if (tempArrowLine) { map.removeLayer(tempArrowLine); tempArrowLine = null; }
+    createArrow(arrowStart, latlng, currentColor);
+    arrowStart = null;
+    saveState();
   }
 }
 
-// ============ ИКОНКИ ============
+function createArrow(start, end, color) {
+  const line = L.polyline([start, end], { color: color, weight: 4, opacity: 0.9 }).addTo(map);
+  
+  // Добавляем стрелку на конце с помощью polylinedecorator
+  const decorator = L.polylineDecorator(line, {
+    patterns: [
+      { offset: '100%', repeat: 0, symbol: L.Symbol.arrowHead({ pixelSize: 15, polygon: false, pathOptions: { stroke: true, color: color, weight: 4, opacity: 0.9 } }) }
+    ]
+  }).addTo(map);
+
+  const arrowObj = { line, decorator, color };
+  arrows.push(arrowObj);
+  line._arrowObj = arrowObj;
+
+  // Удаление по клику
+  line.on('click', (e) => {
+    L.DomEvent.stopPropagation(e);
+    if (!isEditable) return;
+    if (confirm('Удалить эту стрелку?')) {
+      map.removeLayer(line);
+      map.removeLayer(decorator);
+      arrows = arrows.filter(a => a !== arrowObj);
+      saveState();
+    }
+  });
+
+  return arrowObj;
+}
+
+// ============ ЛОГИКА ЦИФР ============
+document.querySelectorAll('.num-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.num-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    currentNumber = parseInt(btn.dataset.num);
+  });
+});
+
+function createNumber(latlng, num, color) {
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="background:${color}; color:white; border:2px solid white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px; box-shadow:0 2px 4px rgba(0,0,0,0.5);">${num}</div>`,
+    iconSize: [24, 24], iconAnchor: [12, 12]
+  });
+
+  const marker = L.marker(latlng, { icon: icon }).addTo(map);
+  marker._num = num;
+  marker._color = color;
+
+  marker.on('click', (e) => {
+    L.DomEvent.stopPropagation(e);
+    if (!isEditable) return;
+    if (confirm(`Удалить цифру ${num}?`)) {
+      map.removeLayer(marker);
+      numbers = numbers.filter(n => n !== marker);
+      saveState();
+    }
+  });
+
+  numbers.push(marker);
+  return marker;
+}
+
+// ============ ИКОНКИ МАРКЕРОВ ============
 function makeIcon(color, shape, selected) {
   const svg = iconSvg(color, shape);
   if (selected) {
@@ -718,6 +830,7 @@ function updateFillCount() {
 function startFillMode() {
   if (!isEditable) return;
   fillMode = true;
+  switchTool('marker'); // Сбрасываем другие инструменты
   fillVertices = [];
   document.body.style.cursor = 'crosshair';
   map.doubleClickZoom.disable();
@@ -788,12 +901,20 @@ function undoFill() {
 // ============ ПАКОВКА / РАСПАКОВКА ============
 function packState(onlyUsedLabels) {
   const data = {
-    v: 2, w: imageWidth, h: imageHeight,
+    v: 3, w: imageWidth, h: imageHeight,
     m: markers.map(m => {
       const ll = m.getLatLng();
       const row = [Math.round(ll.lat), Math.round(ll.lng), COLOR_INDEX.get(m._color) ?? 0, SHAPE_INDEX.get(m._shape) ?? 0];
       if (m._label) row.push(m._label);
       return row;
+    }),
+    a: arrows.map(a => {
+      const latlngs = a.line.getLatLngs();
+      return [Math.round(latlngs[0].lat), Math.round(latlngs[0].lng), Math.round(latlngs[1].lat), Math.round(latlngs[1].lng), COLOR_INDEX.get(a.color) ?? 0];
+    }),
+    n: numbers.map(n => {
+      const ll = n.getLatLng();
+      return [Math.round(ll.lat), Math.round(ll.lng), n._num, COLOR_INDEX.get(n._color) ?? 0];
     })
   };
   const usedColors = new Set(markers.map(m => m._color));
@@ -810,22 +931,37 @@ function packState(onlyUsedLabels) {
 
 function unpackState(data) {
   if (Array.isArray(data.markers) && data.markers.length && typeof data.markers[0] === 'object') {
+    // Старый формат (v1/v2)
     return {
       imageSize: data.imageSize || { w: data.w || imageWidth, h: data.h || imageHeight },
       markers: data.markers.map(m => ({
         lat: m.lat, lng: m.lng, color: m.color || COLORS[0], shape: m.shape || 'circle', label: m.label || ''
       })),
-      legendLabels: data.legendLabels || {}
+      legendLabels: data.legendLabels || {},
+      arrows: [],
+      numbers: []
     };
   }
   const out = {
     imageSize: { w: data.w || imageWidth, h: data.h || imageHeight },
-    markers: [], legendLabels: {}
+    markers: [], legendLabels: {}, arrows: [], numbers: []
   };
   (data.m || []).forEach(row => {
     if (!Array.isArray(row) || row.length < 4) return;
     out.markers.push({
       lat: row[0], lng: row[1], color: COLORS[row[2]] || COLORS[0], shape: SHAPE_NAMES[row[3]] || 'circle', label: row[4] || ''
+    });
+  });
+  (data.a || []).forEach(row => {
+    if (!Array.isArray(row) || row.length < 5) return;
+    out.arrows.push({
+      lat1: row[0], lng1: row[1], lat2: row[2], lng2: row[3], color: COLORS[row[4]] || COLORS[0]
+    });
+  });
+  (data.n || []).forEach(row => {
+    if (!Array.isArray(row) || row.length < 4) return;
+    out.numbers.push({
+      lat: row[0], lng: row[1], num: row[2], color: COLORS[row[3]] || COLORS[0]
     });
   });
   if (data.L && typeof data.L === 'object') {
@@ -853,8 +989,11 @@ function loadState() {
 }
 
 function applyUnpacked(data, opts = {}) {
+  // Очистка
   markers.forEach(m => map.removeLayer(m));
-  markers = [];
+  arrows.forEach(a => { map.removeLayer(a.line); map.removeLayer(a.decorator); });
+  numbers.forEach(n => map.removeLayer(n));
+  markers = []; arrows = []; numbers = [];
   selectedMarkers.clear();
   legendLabels = {};
   updateSelectionUI();
@@ -879,6 +1018,12 @@ function applyUnpacked(data, opts = {}) {
 
   (data.markers || []).forEach(m => {
     createMarker(L.latLng(m.lat * sy, m.lng * sx), m.color, m.shape, m.label);
+  });
+  (data.arrows || []).forEach(a => {
+    createArrow(L.latLng(a.lat1 * sy, a.lng1 * sx), L.latLng(a.lat2 * sy, a.lng2 * sx), a.color);
+  });
+  (data.numbers || []).forEach(n => {
+    createNumber(L.latLng(n.lat * sy, n.lng * sx), n.num, n.color);
   });
 
   updateLegend(true);
@@ -910,7 +1055,22 @@ function doImport(file) {
   reader.readAsText(file);
 }
 
-// ============ ССЫЛКА-ПОДЕЛИТЬСЯ (СЖАТАЯ) ============
+async function loadFromConfigFile(filename) {
+  try {
+    showToast('Загрузка конфигурации...');
+    const res = await fetch(`${filename}?t=${Date.now()}`);
+    if (!res.ok) throw new Error(`Файл не найден (HTTP ${res.status})`);
+    const data = await res.json();
+    applyUnpacked(unpackState(data), { silent: true });
+    showToast(`Карта загружена из файла: ${filename}`);
+  } catch (err) {
+    console.error(err);
+    showToast(`Ошибка загрузки: ${err.message}`);
+    loadState();
+  }
+}
+
+// ============ ССЫЛКА-ПОДЕЛИТЬСЯ ============
 function b64EncodeUnicode(str) {
   return btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
@@ -919,13 +1079,11 @@ function b64DecodeUnicode(str) {
   while (str.length % 4) str += '=';
   return decodeURIComponent(escape(atob(str)));
 }
-
 function encodeForURL(packed) {
   const json = JSON.stringify(packed);
   if (typeof LZString !== 'undefined') return LZString.compressToEncodedURIComponent(json);
   return b64EncodeUnicode(json);
 }
-
 function decodeFromURL(encoded) {
   if (typeof LZString !== 'undefined') {
     try {
@@ -949,17 +1107,13 @@ function shareShortLink() {
   }
 }
 
-// НОВАЯ ФУНКЦИЯ: Экспорт файла + генерация короткой ссылки
 function shareFileLink() {
-  let filename = prompt('Введите имя файла (латиницей, без пробелов):', 'map_config');
+  let filename = prompt('Введите имя файла (латиницей):', 'map_config');
   if (!filename) return;
-  
-  // Очищаем имя от недопустимых символов
   filename = filename.replace(/[^a-zA-Z0-9_-]/g, '');
   if (!filename) filename = 'map_config';
   const finalName = filename + '.json';
 
-  // 1. Скачиваем файл
   const blob = new Blob([JSON.stringify(packState(false), null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -967,9 +1121,8 @@ function shareFileLink() {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 
-  // 2. Генерируем ссылку и копируем
   const url = location.origin + location.pathname + '?' + URL_PARAM_KEY + '=' + finalName;
-  const msg = `Файл ${finalName} скачан! Ссылка на карту скопирована. Загрузите файл на GitHub Pages рядом с index.html.`;
+  const msg = `Файл ${finalName} скачан! Ссылка скопирована. Загрузите файл на сервер.`;
   
   navigator.clipboard.writeText(url).then(() => {
     alert(msg + '\n\nСсылка:\n' + url);
@@ -1032,7 +1185,6 @@ function buildShapesBar() {
   SHAPE_NAMES.forEach(s => {
     const btn = document.createElement('div');
     btn.className = 'shape-btn' + (s === currentShape ? ' selected' : '');
-    btn.title = SHAPE_LABELS[s];
     btn.innerHTML = shapePreviewSvg(s);
     btn.addEventListener('click', () => {
       currentShape = s;
@@ -1060,9 +1212,13 @@ document.getElementById('toggle-edit-btn').addEventListener('click', function() 
   document.getElementById('fill-btn').style.display = isEditable ? '' : 'none';
   document.getElementById('clear-btn').style.display = isEditable ? '' : 'none';
   document.getElementById('import-btn').style.display = isEditable ? '' : 'none';
+  document.getElementById('tool-arrow-btn').style.display = isEditable ? '' : 'none';
+  document.getElementById('tool-number-btn').style.display = isEditable ? '' : 'none';
+  
   if (!isEditable) {
     document.getElementById('delete-selected-btn').style.display = 'none';
     if (fillMode) cancelFillMode();
+    switchTool('marker');
     clearSelection();
   } else {
     updateSelectionUI();
@@ -1093,20 +1249,16 @@ document.getElementById('close-legend').addEventListener('click', () => {
 
 // ============ МОДАЛЬНОЕ ОКНО ПОДЕЛИТЬСЯ ============
 const shareModal = document.getElementById('share-modal');
-
 document.getElementById('share-btn').addEventListener('click', () => {
   shareModal.style.display = 'flex';
 });
-
 document.getElementById('close-share-modal').addEventListener('click', () => {
   shareModal.style.display = 'none';
 });
-
 document.getElementById('share-short-link').addEventListener('click', () => {
   shareModal.style.display = 'none';
   shareShortLink();
 });
-
 document.getElementById('share-file-link').addEventListener('click', () => {
   shareModal.style.display = 'none';
   shareFileLink();
@@ -1114,10 +1266,15 @@ document.getElementById('share-file-link').addEventListener('click', () => {
 
 // ============ ОСТАЛЬНЫЕ КНОПКИ ============
 document.getElementById('clear-btn').addEventListener('click', () => {
-  if (!isEditable || markers.length === 0) return;
-  if (!confirm('Удалить все маркеры?')) return;
+  if (!isEditable) return;
+  if (markers.length === 0 && arrows.length === 0 && numbers.length === 0) return;
+  if (!confirm('Удалить ВСЁ с карты (маркеры, стрелки, цифры)?')) return;
+  
   markers.forEach(m => map.removeLayer(m));
-  markers = [];
+  arrows.forEach(a => { map.removeLayer(a.line); map.removeLayer(a.decorator); });
+  numbers.forEach(n => map.removeLayer(n));
+  
+  markers = []; arrows = []; numbers = [];
   selectedMarkers.clear();
   updateSelectionUI();
   updateLegend();
@@ -1139,7 +1296,6 @@ document.getElementById('fill-btn').addEventListener('click', () => {
 });
 document.getElementById('fill-apply-btn').addEventListener('click', finishFillMode);
 document.getElementById('fill-cancel-btn').addEventListener('click', cancelFillMode);
-document.getElementById('undo-fill-btn')?.addEventListener('click', undoFill); // Кнопка отмены заливки (если добавлена)
 document.getElementById('labels-btn').addEventListener('click', (e) => {
   showLabels = !showLabels;
   e.target.classList.toggle('active', showLabels);
@@ -1156,6 +1312,10 @@ document.addEventListener('keydown', (e) => {
     map.closePopup();
     if (shareModal.style.display !== 'none') shareModal.style.display = 'none';
     if (fillMode) cancelFillMode();
+    else if (arrowStart) {
+      arrowStart = null;
+      if (tempArrowLine) { map.removeLayer(tempArrowLine); tempArrowLine = null; }
+    }
     else if (selectedMarkers.size > 0) clearSelection();
   } else if (e.key === 'Enter' && fillMode) {
     finishFillMode();
