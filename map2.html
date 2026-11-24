@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Карта расстановки войск - Last Asylum</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  body { margin: 0; padding: 0; font-family: sans-serif; background: #1a1a1a; }
+  #map { height: 100vh; width: 100vw; background: #1a1a1a; z-index: 1; }
+
+  /* ====== ВЕРХНЯЯ ПАНЕЛЬ ====== */
+  .top-panel {
+    position: absolute; top: 10px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.92); color: white;
+    padding: 10px; border-radius: 8px;
+    z-index: 1000; width: 95vw; max-width: 650px;
+    box-sizing: border-box; transition: transform 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  .top-panel.hidden { transform: translate(-50%, -150%); }
+  .top-panel h3 {
+    margin: 0 0 4px; font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7;
+  }
+  .top-panel .row { margin-bottom: 6px; }
+  .top-panel .row:last-child { margin-bottom: 0; }
+  .top-panel .close-btn {
+    position: absolute; top: 5px; right: 8px;
+    cursor: pointer; opacity: 0.6; font-size: 16px;
+  }
+  .top-panel .close-btn:hover { opacity: 1; }
+
+  .palette { display: flex; flex-wrap: wrap; gap: 2px; }
+  .palette .swatch {
+    width: 16px; height: 16px; cursor: pointer;
+    border: 2px solid transparent; border-radius: 3px;
+    box-sizing: border-box; transition: transform 0.1s;
+  }
+  .palette .swatch:hover { transform: scale(1.2); }
+  .palette .swatch.selected {
+    border-color: white;
+    box-shadow: 0 0 0 1px #000, 0 0 0 2px white;
+  }
+
+  .shapes-bar { display: flex; gap: 4px; flex-wrap: wrap; }
+  .shapes-bar .shape-btn {
+    width: 28px; height: 28px; cursor: pointer;
+    border: 2px solid transparent; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    background: #222; box-sizing: border-box;
+  }
+  .shapes-bar .shape-btn:hover { background: #333; }
+  .shapes-bar .shape-btn.selected {
+    border-color: white;
+    box-shadow: 0 0 0 1px #000, 0 0 0 2px white;
+  }
+
+  /* ====== ЛЕГЕНДА ====== */
+  .legend-panel {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(0,0,0,0.92); color: white;
+    padding: 10px; border-radius: 8px; z-index: 1000;
+    width: 220px; max-height: calc(100vh - 160px);
+    overflow-y: auto; transition: transform 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  .legend-panel.hidden { display: none; }
+  .legend-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .legend-panel h3 { margin: 0; font-size: 11px; font-weight: 600; text-transform: uppercase; opacity: 0.7; }
+  .legend-panel .close-btn { cursor: pointer; opacity: 0.6; font-size: 16px; line-height: 1; }
+  .legend-panel .close-btn:hover { opacity: 1; }
+
+  .legend-row { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+  .legend-row .swatch {
+    width: 20px; height: 20px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .legend-row input {
+    flex: 1; padding: 3px 6px; border: 1px solid #555;
+    background: #222; color: #eee; border-radius: 3px;
+    font-size: 12px; outline: none; min-width: 0;
+  }
+  .legend-row input:focus { border-color: #4a9eff; }
+  .legend-empty { color: #888; font-size: 12px; font-style: italic; }
+
+  /* ====== НИЖНЯЯ ПАНЕЛЬ КНОПОК ====== */
+  .controls {
+    position: absolute; bottom: 10px; left: 10px; right: 10px;
+    z-index: 1000; display: flex; gap: 6px; flex-wrap: wrap;
+    justify-content: center; pointer-events: none;
+  }
+  .controls button {
+    pointer-events: auto;
+    padding: 8px 10px; background: rgba(40,40,40,0.9); color: white;
+    border: 1px solid #555; border-radius: 5px;
+    cursor: pointer; font-size: 12px; white-space: nowrap;
+    transition: background 0.1s; backdrop-filter: blur(4px);
+  }
+  .controls button:hover { background: #444; }
+  .controls button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .controls button.danger { background: rgba(122,40,40,0.9); border-color: #8e2f2f; }
+  .controls button.danger:hover { background: #8e2f2f; }
+  .controls button.accent { background: rgba(44,90,160,0.9); border-color: #3670c4; }
+  .controls button.accent:hover { background: #3670c4; }
+  .controls button.active { background: #2c5aa0; border-color: #4a9eff; box-shadow: 0 0 0 2px #4a9eff; }
+  .controls button.mode-btn { background: #7a2828; border-color: #c0392b; }
+  .controls button.mode-btn.edit { background: #27ae60; border-color: #2ecc71; }
+
+  /* ====== МОДАЛЬНОЕ ОКНО ПОДЕЛИТЬСЯ ====== */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7); z-index: 3000;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-content {
+    background: #1e1e1e; color: white; padding: 20px;
+    border-radius: 8px; width: 90vw; max-width: 400px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 1px solid #444;
+  }
+  .modal-content h3 { margin: 0 0 15px; font-size: 16px; }
+  .share-option {
+    padding: 12px; border: 1px solid #444; border-radius: 6px;
+    margin-bottom: 10px; cursor: pointer; transition: background 0.2s;
+  }
+  .share-option:hover { background: #2a2a2a; border-color: #4a9eff; }
+  .share-option h4 { margin: 0 0 5px; font-size: 14px; color: #4a9eff; }
+  .share-option p { margin: 0; font-size: 12px; opacity: 0.7; line-height: 1.4; }
+  .modal-close { text-align: right; margin-top: 10px; }
+  .modal-close button { padding: 8px 16px; background: #333; border: 1px solid #555; color: white; border-radius: 4px; cursor: pointer; }
+
+  /* ====== ПАНЕЛЬ ЗАЛИВКИ ====== */
+  .fill-panel {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(20,20,20,0.95); color: white;
+    padding: 15px; border-radius: 8px; z-index: 2000;
+    width: 90vw; max-width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+    border: 1px solid #444;
+  }
+  .fill-panel h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+  .fill-panel p { margin: 0 0 12px; font-size: 12px; opacity: 0.8; line-height: 1.4; }
+  .fill-panel .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .fill-panel label { font-size: 12px; }
+  .fill-panel input[type="number"] {
+    background: #222; border: 1px solid #555; color: white;
+    padding: 4px 6px; border-radius: 4px; width: 70px; margin-left: 4px;
+  }
+  .fill-panel button {
+    padding: 6px 12px; border: 1px solid #555; border-radius: 4px;
+    cursor: pointer; background: #333; color: white; font-size: 12px;
+  }
+  .fill-panel button.danger { background: #7a2828; border-color: #8e2f2f; }
+  .fill-panel button.accent { background: #2c5aa0; border-color: #3670c4; }
+
+  /* ====== ПОПАПЫ И ТУЛТИПЫ ====== */
+  .popup-colors { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; margin: 5px 0; }
+  .popup-colors .swatch {
+    width: 18px; height: 18px; cursor: pointer;
+    border: 1px solid #ccc; border-radius: 2px;
+  }
+  .popup-colors .swatch:hover { transform: scale(1.25); }
+  .popup-shapes { display: flex; gap: 3px; margin: 5px 0; flex-wrap: wrap; }
+  .popup-shapes .shape-btn {
+    width: 26px; height: 26px; cursor: pointer;
+    border: 1px solid #555; border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    background: #222;
+  }
+  .popup-shapes .shape-btn:hover { background: #444; }
+
+  .leaflet-popup-content { margin: 10px !important; }
+  .popup-title {
+    font-weight: bold; font-size: 10px; margin: 6px 0 2px;
+    text-transform: uppercase; opacity: 0.6; letter-spacing: 0.5px;
+  }
+  .popup-label-input {
+    width: 100%; padding: 4px 6px; border: 1px solid #555;
+    background: #222; color: #eee; border-radius: 3px;
+    font-size: 12px; box-sizing: border-box;
+  }
+
+  .marker-label {
+    background: rgba(0,0,0,0.85) !important; color: white !important;
+    border: 1px solid rgba(255,255,255,0.25) !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4) !important;
+    padding: 2px 6px !important; font-size: 11px !important;
+    border-radius: 3px !important; white-space: nowrap;
+    font-weight: 500; pointer-events: none;
+  }
+  .marker-label::before { display: none !important; }
+
+  .toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: #2c5aa0; color: white; padding: 10px 20px;
+    border-radius: 5px; z-index: 99999; font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: fadeIn 0.2s;
+    white-space: nowrap;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translate(-50%, -10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+  /* ====== МОБИЛЬНАЯ АДАПТАЦИЯ ====== */
+  @media (max-width: 768px) {
+    .top-panel { width: 100vw; border-radius: 0; top: 0; padding: 8px 10px; max-width: none; }
+    .palette .swatch { width: 20px; height: 20px; }
+    .legend-panel { top: 10px; right: 10px; width: 180px; max-height: 50vh; }
+    .controls { bottom: 5px; left: 5px; right: 5px; gap: 4px; }
+    .controls button { padding: 6px 8px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Верхняя панель -->
+<div class="top-panel" id="top-panel">
+  <div class="close-btn" id="close-top-panel">×</div>
+  <div class="row">
+    <h3>Цвет</h3>
+    <div class="palette" id="palette"></div>
+  </div>
+  <div class="row">
+    <h3>Тип маркера</h3>
+    <div class="shapes-bar" id="shapes-bar"></div>
+  </div>
+</div>
+
+<!-- Легенда -->
+<div class="legend-panel hidden" id="legend-panel">
+  <div class="legend-header">
+    <h3>Легенда</h3>
+    <div class="close-btn" id="close-legend">×</div>
+  </div>
+  <div id="legend-list"></div>
+</div>
+
+<!-- Модальное окно Поделиться -->
+<div class="modal-overlay" id="share-modal" style="display:none;">
+  <div class="modal-content">
+    <h3>Поделиться картой</h3>
+    <div class="share-option" id="share-short-link">
+      <h4>🔗 Короткая ссылка (внутри)</h4>
+      <p>Подходит для небольших карт (до ~500 маркеров). Данные зашифрованы прямо в ссылке.</p>
+    </div>
+    <div class="share-option" id="share-file-link">
+      <h4>📂 Ссылка на файл (рекомендуется)</h4>
+      <p>Скачает JSON-файл и скопирует короткую ссылку. Загрузите файл на GitHub рядом с index.html.</p>
+    </div>
+    <div class="modal-close">
+      <button id="close-share-modal">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<!-- Панель заливки -->
+<div class="fill-panel" id="fill-panel" style="display:none;">
+  <h3>Заливка точками</h3>
+  <p>Кликайте по карте, задавая вершины полигона. <b>Enter</b> — заполнить, <b>Esc</b> — отмена.</p>
+  <div class="row">
+    <label>Шаг сетки: <input type="number" id="fill-step" value="30" min="10" max="100"></label>
+  </div>
+  <div class="row" style="margin-bottom:0;">
+    <button id="fill-apply-btn" class="accent">Залить</button>
+    <button id="fill-cancel-btn" class="danger">Отмена</button>
+    <span style="font-size:12px;opacity:0.7;margin-left:auto;">Точек: <b id="fill-count">0</b></span>
+  </div>
+</div>
+
+<!-- Нижняя панель -->
+<div class="controls">
+  <button id="toggle-panel-btn" class="accent">🎨 Панель</button>
+  <button id="toggle-legend-btn" class="accent">📖 Легенда</button>
+  <button id="toggle-edit-btn" class="mode-btn edit">🔓 Ред.</button>
+  <button id="labels-btn" class="active">🏷 Подписи</button>
+  <button id="share-btn" class="accent">🔗 Поделиться</button>
+  <button id="export-btn">⬇️ Экспорт</button>
+  <button id="import-btn">⬆️ Импорт</button>
+  <button id="fill-btn">🎯 Заливка</button>
+  <button id="clear-btn" class="danger">🗑 Очистить</button>
+  <button id="delete-selected-btn" class="danger" disabled style="display:none;">Удалить выбранные</button>
+  <input type="file" id="import-file" accept=".json,application/json" style="display:none">
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/lz-string@1.5.0/libs/lz-string.min.js"></script>
+<script>
+// ============ КОНФИГ ============
+const IMAGE_URL = 'map.jpg';
+const STORAGE_KEY = 'lastasylum_map_state_v2';
+const SHARE_PREFIX = '#m=';
+const URL_PARAM_KEY = 'config'; // ?config=file.json
+const SHAPE_NAMES = ['circle', 'square', 'triangle', 'diamond', 'star', 'hexagon', 'shield', 'cross'];
+const SHAPE_LABELS = {
+  circle: 'Круг', square: 'Квадрат', triangle: 'Треугольник',
+  diamond: 'Ромб', star: 'Звезда', hexagon: 'Шестиугольник',
+  shield: 'Щит', cross: 'Крест'
+};
+
+// ============ 50 ЦВЕТОВ ============
+function hslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => {
+    const k = (n + h / 30) % 12;
+    const c = l - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)));
+    return Math.round(255 * c).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+const COLORS = [];
+for (let i = 0; i < 50; i++) {
+  const hue = i * 360 / 50;
+  const sat = [75, 90, 60][i % 3];
+  const light = [45, 60, 35, 50, 70][Math.floor(i / 3) % 5];
+  COLORS.push(hslToHex(hue, sat, light));
+}
+const COLOR_INDEX = new Map(COLORS.map((c, i) => [c, i]));
+const SHAPE_INDEX = new Map(SHAPE_NAMES.map((s, i) => [s, i]));
+
+// ============ SVG ФИГУРЫ ============
+const SHAPES = {
+  circle:   (c) => `<circle cx="14" cy="14" r="11" fill="${c}" stroke="white" stroke-width="2"/>`,
+  square:   (c) => `<rect x="3" y="3" width="22" height="22" rx="2" fill="${c}" stroke="white" stroke-width="2"/>`,
+  triangle: (c) => `<polygon points="14,3 25,24 3,24" fill="${c}" stroke="white" stroke-width="2" stroke-linejoin="round"/>`,
+  diamond:  (c) => `<polygon points="14,3 25,14 14,25 3,14" fill="${c}" stroke="white" stroke-width="2" stroke-linejoin="round"/>`,
+  star:     (c) => `<polygon points="14,3 16.65,10.36 24.46,10.6 18.28,15.39 20.47,22.9 14,18.5 7.53,22.9 9.72,15.39 3.54,10.6 11.35,10.36" fill="${c}" stroke="white" stroke-width="2" stroke-linejoin="round"/>`,
+  hexagon:  (c) => `<polygon points="14,3 23.5,8.5 23.5,19.5 14,25 4.5,19.5 4.5,8.5" fill="${c}" stroke="white" stroke-width="2" stroke-linejoin="round"/>`,
+  shield:   (c) => `<path d="M14,3 L24,7 L24,15 Q24,22 14,26 Q4,22 4,15 L4,7 Z" fill="${c}" stroke="white" stroke-width="2"/>`,
+  cross:    (c) => `<path d="M10,3 L18,3 L18,10 L25,10 L25,18 L18,18 L18,25 L10,25 L10,18 L3,18 L3,10 L10,10 Z" fill="${c}" stroke="white" stroke-width="2"/>`
+};
+const iconSvg = (color, shape) =>
+  `<svg viewBox="0 0 28 28" width="28" height="28" xmlns="http://www.w3.org/2000/svg">${(SHAPES[shape] || SHAPES.circle)(color)}</svg>`;
+const shapePreviewSvg = (shape, color = '#ccc') =>
+  `<svg viewBox="0 0 28 28" width="20" height="20" xmlns="http://www.w3.org/2000/svg">${(SHAPES[shape] || SHAPES.circle)(color)}</svg>`;
+
+// ============ СОСТОЯНИЕ ============
+let currentColor = COLORS[0];
+let currentShape = 'circle';
+let markers = [];
+let legendLabels = {};
+let imageWidth = 0, imageHeight = 0;
+let showLabels = true;
+let isEditable = true;
+let selectedMarkers = new Set();
+let nextMarkerId = 1;
+let fillMode = false;
+let fillVertices = [];
+let fillPreviewLayer = null;
+let lastFillBatch = [];
+let groupDragOrigin = null, groupDragStart = null;
+let lastLegendKey = null;
+
+// ============ КАРТА ============
+const map = L.map('map', { crs: L.CRS.Simple, minZoom: -2, maxZoom: 2, zoomControl: false });
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+map.on('click', (e) => {
+  if (!isEditable) return;
+  if (fillMode) {
+    fillVertices.push(e.latlng);
+    updateFillPreview();
+    return;
+  }
+  createMarker(e.latlng, currentColor, currentShape, '');
+  if (selectedMarkers.size > 0) clearSelection();
+  updateLegend();
+  saveState();
+});
+
+const img = new Image();
+img.onload = () => {
+  imageWidth = img.naturalWidth;
+  imageHeight = img.naturalHeight;
+  const bounds = [[0, 0], [imageHeight, imageWidth]];
+  L.imageOverlay(IMAGE_URL, bounds).addTo(map);
+  map.fitBounds(bounds);
+  
+  // Приоритет загрузки: 1. ?config=file.json  2. #m=hash  3. localStorage
+  const urlParams = new URLSearchParams(window.location.search);
+  const configFile = urlParams.get(URL_PARAM_KEY);
+
+  if (configFile) {
+    loadFromConfigFile(configFile);
+  } else if (!loadFromHash()) {
+    loadState();
+  }
+};
+img.onerror = () => {
+  const el = document.createElement('div');
+  el.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#c00;color:white;padding:20px;border-radius:8px;z-index:9999;font-family:sans-serif;max-width:80vw;text-align:center;';
+  el.innerHTML = '<b>Не удалось загрузить map.jpg</b><br><br>Положите файл <code>map.jpg</code> рядом с <code>index.html</code> и обновите страницу.';
+  document.body.appendChild(el);
+};
+img.src = IMAGE_URL;
+
+// ============ ЗАГРУЗКА ИЗ ФАЙЛА (URL PARAM) ============
+async function loadFromConfigFile(filename) {
+  try {
+    showToast('Загрузка конфигурации...');
+    // Добавляем таймстамп, чтобы браузер не кешировал старую версию файла
+    const res = await fetch(`${filename}?t=${Date.now()}`);
+    if (!res.ok) throw new Error(`Файл не найден (HTTP ${res.status})`);
+    const data = await res.json();
+    applyUnpacked(unpackState(data), { silent: true });
+    showToast(`Карта загружена из файла: ${filename}`);
+  } catch (err) {
+    console.error(err);
+    showToast(`Ошибка загрузки: ${err.message}`);
+    // Если файл не загрузился, пробуем локальное сохранение
+    loadState();
+  }
+}
+
+// ============ ИКОНКИ ============
+function makeIcon(color, shape, selected) {
+  const svg = iconSvg(color, shape);
+  if (selected) {
+    return L.divIcon({
+      className: '',
+      html: `<div style="position:relative;width:28px;height:28px;">
+        <div style="position:absolute;top:-4px;left:-4px;width:36px;height:36px;border:2px solid #4a9eff;border-radius:50%;box-shadow:0 0 8px #4a9eff;box-sizing:border-box;pointer-events:none;"></div>
+        ${svg}
+      </div>`,
+      iconSize: [28, 28], iconAnchor: [14, 14]
+    });
+  }
+  return L.divIcon({ className: '', html: svg, iconSize: [28, 28], iconAnchor: [14, 14] });
+}
+
+function refreshMarkerIcon(marker) {
+  marker.setIcon(makeIcon(marker._color, marker._shape, selectedMarkers.has(marker)));
+}
+
+// ============ МАРКЕРЫ ============
+function createMarker(latlng, color, shape, label) {
+  const marker = L.marker(latlng, { 
+    icon: makeIcon(color, shape, false), 
+    draggable: isEditable
+  }).addTo(map);
+  
+  marker._id = nextMarkerId++;
+  marker._color = color;
+  marker._shape = shape;
+  marker._label = label || '';
+  marker._selected = false;
+
+  marker.on('click', (e) => {
+    L.DomEvent.stopPropagation(e);
+    if (fillMode) {
+      fillVertices.push(e.latlng);
+      updateFillPreview();
+      return;
+    }
+    if (e.originalEvent && e.originalEvent.shiftKey && isEditable) {
+      toggleSelection(marker);
+      return;
+    }
+    if (isEditable) openMarkerPopup(marker);
+  });
+
+  marker.on('dragstart', () => {
+    if (!isEditable) return;
+    if (selectedMarkers.has(marker) && selectedMarkers.size > 1) {
+      groupDragOrigin = marker.getLatLng();
+      groupDragStart = {};
+      selectedMarkers.forEach(m => { groupDragStart[m._id] = m.getLatLng(); });
+    } else {
+      groupDragStart = null;
+    }
+  });
+
+  marker.on('drag', () => {
+    if (!isEditable) return;
+    if (groupDragStart && groupDragOrigin) {
+      const cur = marker.getLatLng();
+      const dLat = cur.lat - groupDragOrigin.lat;
+      const dLng = cur.lng - groupDragOrigin.lng;
+      selectedMarkers.forEach(m => {
+        if (m !== marker) {
+          const s = groupDragStart[m._id];
+          if (s) m.setLatLng([s.lat + dLat, s.lng + dLng]);
+        }
+      });
+    }
+  });
+
+  marker.on('dragend', () => {
+    groupDragStart = null;
+    groupDragOrigin = null;
+    saveState();
+  });
+
+  markers.push(marker);
+  updateMarkerTooltip(marker);
+  return marker;
+}
+
+// ============ ПОДПИСИ ============
+function updateMarkerTooltip(marker) {
+  marker.unbindTooltip();
+  if (!showLabels) return;
+  const label = marker._label || legendLabels[marker._color] || '';
+  if (!label) return;
+  marker.bindTooltip(label, {
+    permanent: true, direction: 'bottom',
+    className: 'marker-label', offset: [0, 10], interactive: false
+  });
+}
+
+function updateAllTooltips() {
+  markers.forEach(m => updateMarkerTooltip(m));
+}
+
+// ============ ВЫДЕЛЕНИЕ ============
+function toggleSelection(marker) {
+  if (!isEditable) return;
+  if (selectedMarkers.has(marker)) {
+    selectedMarkers.delete(marker);
+    marker._selected = false;
+    refreshMarkerIcon(marker);
+  } else {
+    selectedMarkers.add(marker);
+    marker._selected = true;
+    refreshMarkerIcon(marker);
+  }
+  updateSelectionUI();
+}
+
+function clearSelection() {
+  selectedMarkers.forEach(m => {
+    m._selected = false;
+    refreshMarkerIcon(m);
+  });
+  selectedMarkers.clear();
+  updateSelectionUI();
+}
+
+function updateSelectionUI() {
+  const btn = document.getElementById('delete-selected-btn');
+  const n = selectedMarkers.size;
+  btn.textContent = `Удалить (${n})`;
+  btn.style.display = n > 0 ? '' : 'none';
+}
+
+function deleteSelectedMarkers() {
+  if (!isEditable || selectedMarkers.size === 0) return;
+  if (!confirm(`Удалить ${selectedMarkers.size} маркеров?`)) return;
+  selectedMarkers.forEach(m => {
+    map.removeLayer(m);
+    markers = markers.filter(mk => mk !== m);
+  });
+  selectedMarkers.clear();
+  updateSelectionUI();
+  updateLegend();
+  saveState();
+}
+
+// ============ ПОПАП МАРКЕРА ============
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+
+function openMarkerPopup(marker) {
+  if (!isEditable) return;
+
+  let html = '<div style="min-width:235px;">';
+  html += '<div class="popup-title">Цвет</div><div class="popup-colors">';
+  COLORS.forEach(c => {
+    const sel = c === marker._color ? 'box-shadow:0 0 0 2px #4a9eff;' : '';
+    html += `<div class="swatch" data-color="${c}" style="background:${c};${sel}"></div>`;
+  });
+  html += '</div><div class="popup-title">Тип</div><div class="popup-shapes">';
+  SHAPE_NAMES.forEach(s => {
+    const sel = s === marker._shape ? 'border-color:#4a9eff;background:#333;' : '';
+    html += `<div class="shape-btn" data-shape="${s}" style="${sel}">${shapePreviewSvg(s, marker._color)}</div>`;
+  });
+  html += '</div>';
+  html += '<div class="popup-title">Подпись</div>';
+  html += `<input type="text" class="popup-label-input" value="${escapeHtml(marker._label || '')}" placeholder="Например: Северные ворота">`;
+  html += '<button class="popup-del" style="margin-top:10px;width:100%;padding:6px;background:#c0392b;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">Удалить маркер</button>';
+  html += '</div>';
+
+  const popup = L.popup({ closeButton: true, autoClose: true, maxWidth: 320 })
+    .setLatLng(marker.getLatLng()).setContent(html).openOn(map);
+
+  setTimeout(() => {
+    const container = popup.getElement();
+    if (!container) return;
+
+    container.querySelectorAll('.popup-colors .swatch').forEach(sw => {
+      sw.addEventListener('click', () => {
+        marker._color = sw.dataset.color;
+        refreshMarkerIcon(marker);
+        updateMarkerTooltip(marker);
+        updateLegend();
+        saveState();
+        container.querySelectorAll('.popup-colors .swatch').forEach(s => {
+          s.style.boxShadow = s.dataset.color === marker._color ? '0 0 0 2px #4a9eff' : '';
+        });
+        container.querySelectorAll('.popup-shapes .shape-btn').forEach(btn => {
+          btn.innerHTML = shapePreviewSvg(btn.dataset.shape, marker._color);
+        });
+      });
+    });
+
+    container.querySelectorAll('.popup-shapes .shape-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        marker._shape = btn.dataset.shape;
+        refreshMarkerIcon(marker);
+        saveState();
+        container.querySelectorAll('.popup-shapes .shape-btn').forEach(b => {
+          b.style.borderColor = b.dataset.shape === marker._shape ? '#4a9eff' : '';
+          b.style.background = b.dataset.shape === marker._shape ? '#333' : '';
+        });
+      });
+    });
+
+    const labelInput = container.querySelector('.popup-label-input');
+    if (labelInput) {
+      labelInput.addEventListener('input', () => {
+        marker._label = labelInput.value;
+        updateMarkerTooltip(marker);
+        saveState();
+      });
+    }
+
+    const delBtn = container.querySelector('.popup-del');
+    if (delBtn) delBtn.addEventListener('click', () => {
+      map.removeLayer(marker);
+      markers = markers.filter(m => m !== marker);
+      selectedMarkers.delete(marker);
+      map.closePopup();
+      updateSelectionUI();
+      updateLegend();
+      saveState();
+    });
+  }, 10);
+}
+
+// ============ ЛЕГЕНДА ============
+function updateLegend(force = false) {
+  const usedSet = new Set(markers.map(m => m._color));
+  const usedKey = Array.from(usedSet).sort().join(',');
+  if (!force && usedKey === lastLegendKey) {
+    updateAllTooltips();
+    return;
+  }
+  lastLegendKey = usedKey;
+
+  const el = document.getElementById('legend-list');
+  el.innerHTML = '';
+
+  if (usedSet.size === 0) {
+    el.innerHTML = '<div class="legend-empty">Маркеров пока нет.</div>';
+    updateAllTooltips();
+    return;
+  }
+
+  COLORS.forEach((c, idx) => {
+    if (!usedSet.has(c)) return;
+    const sample = markers.find(m => m._color === c);
+    const shape = sample ? sample._shape : 'circle';
+    const label = legendLabels[c] !== undefined ? legendLabels[c] : `Цвет ${idx + 1}`;
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+    row.innerHTML = `
+      <div class="swatch">${shapePreviewSvg(shape, c)}</div>
+      <input type="text" value="${escapeHtml(label)}" data-color="${c}" placeholder="Название..." ${!isEditable ? 'readonly' : ''}>
+    `;
+    el.appendChild(row);
+    
+    if (isEditable) {
+      row.querySelector('input').addEventListener('input', (e) => {
+        legendLabels[c] = e.target.value;
+        markers.filter(m => m._color === c).forEach(m => updateMarkerTooltip(m));
+        saveState();
+      });
+    }
+  });
+  updateAllTooltips();
+}
+
+// ============ ЗАЛИВКА ============
+function pointInPolygon(point, polygon) {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i];
+    const [xj, yj] = polygon[j];
+    const intersect = ((yi > point[1]) !== (yj > point[1])) &&
+      (point[0] < (xj - xi) * (point[1] - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function updateFillPreview() {
+  if (fillPreviewLayer) map.removeLayer(fillPreviewLayer);
+  if (fillVertices.length === 0) { fillPreviewLayer = null; updateFillCount(); return; }
+  if (fillVertices.length < 3) {
+    fillPreviewLayer = L.polyline(fillVertices, { color: '#4a9eff', weight: 2, dashArray: '5,5' }).addTo(map);
+  } else {
+    fillPreviewLayer = L.polygon(fillVertices, {
+      color: '#4a9eff', weight: 2, fillOpacity: 0.15, dashArray: '5,5'
+    }).addTo(map);
+  }
+  updateFillCount();
+}
+
+function updateFillCount() {
+  const el = document.getElementById('fill-count');
+  if (el) el.textContent = fillVertices.length;
+}
+
+function startFillMode() {
+  if (!isEditable) return;
+  fillMode = true;
+  fillVertices = [];
+  document.body.style.cursor = 'crosshair';
+  map.doubleClickZoom.disable();
+  markers.forEach(m => m.dragging.disable());
+  document.getElementById('fill-panel').style.display = '';
+  document.getElementById('fill-btn').classList.add('active');
+  updateFillCount();
+}
+
+function cancelFillMode() {
+  fillMode = false;
+  fillVertices = [];
+  document.body.style.cursor = '';
+  map.doubleClickZoom.enable();
+  if (isEditable) markers.forEach(m => m.dragging.enable());
+  if (fillPreviewLayer) { map.removeLayer(fillPreviewLayer); fillPreviewLayer = null; }
+  document.getElementById('fill-panel').style.display = 'none';
+  document.getElementById('fill-btn').classList.remove('active');
+}
+
+function finishFillMode() {
+  if (fillVertices.length < 3) {
+    alert('Нужно минимум 3 точки для полигона');
+    return;
+  }
+  const step = Math.max(5, parseInt(document.getElementById('fill-step').value) || 30);
+  const poly = fillVertices.slice();
+  const poly2D = poly.map(p => [p.lng, p.lat]);
+  const xs = poly.map(p => p.lng);
+  const ys = poly.map(p => p.lat);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+
+  const batch = [];
+  for (let y = minY + step / 2; y < maxY; y += step) {
+    for (let x = minX + step / 2; x < maxX; x += step) {
+      if (pointInPolygon([x, y], poly2D)) {
+        batch.push(createMarker(L.latLng(y, x), currentColor, currentShape, ''));
+      }
+    }
+  }
+
+  lastFillBatch = batch;
+  cancelFillMode();
+  updateLegend();
+  saveState();
+  showToast(`Добавлено: ${batch.length}`);
+}
+
+function undoFill() {
+  if (!lastFillBatch || lastFillBatch.length === 0) {
+    showToast('Нечего отменять');
+    return;
+  }
+  const n = lastFillBatch.length;
+  lastFillBatch.forEach(m => {
+    map.removeLayer(m);
+    markers = markers.filter(mk => mk !== m);
+    selectedMarkers.delete(m);
+  });
+  lastFillBatch = [];
+  updateSelectionUI();
+  updateLegend();
+  saveState();
+  showToast(`Отменено: ${n}`);
+}
+
+// ============ ПАКОВКА / РАСПАКОВКА ============
+function packState(onlyUsedLabels) {
+  const data = {
+    v: 2, w: imageWidth, h: imageHeight,
+    m: markers.map(m => {
+      const ll = m.getLatLng();
+      const row = [Math.round(ll.lat), Math.round(ll.lng), COLOR_INDEX.get(m._color) ?? 0, SHAPE_INDEX.get(m._shape) ?? 0];
+      if (m._label) row.push(m._label);
+      return row;
+    })
+  };
+  const usedColors = new Set(markers.map(m => m._color));
+  const L = {};
+  Object.entries(legendLabels).forEach(([color, label]) => {
+    if (!label) return;
+    if (onlyUsedLabels && !usedColors.has(color)) return;
+    const ci = COLOR_INDEX.get(color);
+    if (ci !== undefined) L[ci] = label;
+  });
+  if (Object.keys(L).length) data.L = L;
+  return data;
+}
+
+function unpackState(data) {
+  if (Array.isArray(data.markers) && data.markers.length && typeof data.markers[0] === 'object') {
+    return {
+      imageSize: data.imageSize || { w: data.w || imageWidth, h: data.h || imageHeight },
+      markers: data.markers.map(m => ({
+        lat: m.lat, lng: m.lng, color: m.color || COLORS[0], shape: m.shape || 'circle', label: m.label || ''
+      })),
+      legendLabels: data.legendLabels || {}
+    };
+  }
+  const out = {
+    imageSize: { w: data.w || imageWidth, h: data.h || imageHeight },
+    markers: [], legendLabels: {}
+  };
+  (data.m || []).forEach(row => {
+    if (!Array.isArray(row) || row.length < 4) return;
+    out.markers.push({
+      lat: row[0], lng: row[1], color: COLORS[row[2]] || COLORS[0], shape: SHAPE_NAMES[row[3]] || 'circle', label: row[4] || ''
+    });
+  });
+  if (data.L && typeof data.L === 'object') {
+    Object.entries(data.L).forEach(([ci, label]) => {
+      const c = COLORS[ci];
+      if (c) out.legendLabels[c] = label;
+    });
+  }
+  return out;
+}
+
+// ============ СОХРАНЕНИЕ / ЭКСПОРТ / ИМПОРТ ============
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(packState(false)));
+  } catch (e) { console.warn('Не удалось сохранить:', e); }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) { updateLegend(true); return; }
+    applyUnpacked(unpackState(JSON.parse(raw)), { silent: true });
+  } catch (e) { console.warn('Не удалось загрузить:', e); updateLegend(true); }
+}
+
+function applyUnpacked(data, opts = {}) {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  selectedMarkers.clear();
+  legendLabels = {};
+  updateSelectionUI();
+
+  const srcSize = data.imageSize || { w: imageWidth, h: imageHeight };
+  let sx = 1, sy = 1;
+  if (srcSize.w && srcSize.h && imageWidth && imageHeight &&
+      (srcSize.w !== imageWidth || srcSize.h !== imageHeight)) {
+    if (!opts.silent) {
+      const r1 = srcSize.w / srcSize.h, r2 = imageWidth / imageHeight;
+      if (Math.abs(r1 - r2) > 0.05) {
+        if (!confirm('Пропорции картинки отличаются. Продолжить?')) {
+          updateLegend(true); return;
+        }
+      }
+    }
+    sx = imageWidth / srcSize.w;
+    sy = imageHeight / srcSize.h;
+  }
+
+  if (data.legendLabels) Object.assign(legendLabels, data.legendLabels);
+
+  (data.markers || []).forEach(m => {
+    createMarker(L.latLng(m.lat * sy, m.lng * sx), m.color, m.shape, m.label);
+  });
+
+  updateLegend(true);
+}
+
+function doExport() {
+  const blob = new Blob([JSON.stringify(packState(false), null, 2)], { type: 'application/json' });
+  const today = new Date().toISOString().slice(0, 10);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `lastasylum-map-${today}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function doImport(file) {
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const unpacked = unpackState(data);
+      if (!unpacked.markers) throw new Error('Неверный формат');
+      applyUnpacked(unpacked);
+      saveState();
+      showToast('Импорт выполнен');
+    } catch (err) { alert('Ошибка импорта: ' + err.message); }
+  };
+  reader.onerror = () => alert('Не удалось прочитать файл');
+  reader.readAsText(file);
+}
+
+// ============ ССЫЛКА-ПОДЕЛИТЬСЯ (СЖАТАЯ) ============
+function b64EncodeUnicode(str) {
+  return btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+function b64DecodeUnicode(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  return decodeURIComponent(escape(atob(str)));
+}
+
+function encodeForURL(packed) {
+  const json = JSON.stringify(packed);
+  if (typeof LZString !== 'undefined') return LZString.compressToEncodedURIComponent(json);
+  return b64EncodeUnicode(json);
+}
+
+function decodeFromURL(encoded) {
+  if (typeof LZString !== 'undefined') {
+    try {
+      const json = LZString.decompressFromEncodedURIComponent(encoded);
+      if (json) return JSON.parse(json);
+    } catch (e) {}
+  }
+  return JSON.parse(b64DecodeUnicode(encoded));
+}
+
+function shareShortLink() {
+  const packed = packState(true);
+  const encoded = encodeForURL(packed);
+  const url = location.origin + location.pathname + location.search + SHARE_PREFIX + encoded;
+  const info = `Ссылка скопирована (${url.length.toLocaleString('ru')} симв.)`;
+  try {
+    navigator.clipboard.writeText(url);
+    showToast(info);
+  } catch {
+    prompt('Скопируйте ссылку:', url);
+  }
+}
+
+// НОВАЯ ФУНКЦИЯ: Экспорт файла + генерация короткой ссылки
+function shareFileLink() {
+  let filename = prompt('Введите имя файла (латиницей, без пробелов):', 'map_config');
+  if (!filename) return;
+  
+  // Очищаем имя от недопустимых символов
+  filename = filename.replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!filename) filename = 'map_config';
+  const finalName = filename + '.json';
+
+  // 1. Скачиваем файл
+  const blob = new Blob([JSON.stringify(packState(false), null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = finalName;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+
+  // 2. Генерируем ссылку и копируем
+  const url = location.origin + location.pathname + '?' + URL_PARAM_KEY + '=' + finalName;
+  const msg = `Файл ${finalName} скачан! Ссылка на карту скопирована. Загрузите файл на GitHub Pages рядом с index.html.`;
+  
+  navigator.clipboard.writeText(url).then(() => {
+    alert(msg + '\n\nСсылка:\n' + url);
+  }).catch(() => {
+    prompt(msg, url);
+  });
+}
+
+function loadFromHash() {
+  const hash = location.hash;
+  if (hash.startsWith(SHARE_PREFIX)) {
+    try {
+      const encoded = hash.slice(SHARE_PREFIX.length);
+      const data = decodeFromURL(encoded);
+      applyUnpacked(unpackState(data));
+      history.replaceState(null, '', location.pathname + location.search);
+      return true;
+    } catch (e) { showToast('Ошибка в ссылке'); return false; }
+  }
+  if (hash.startsWith('#map=')) {
+    try {
+      const encoded = hash.slice(5);
+      applyUnpacked(unpackState(JSON.parse(b64DecodeUnicode(encoded))));
+      history.replaceState(null, '', location.pathname + location.search);
+      return true;
+    } catch (e) { return false; }
+  }
+  return false;
+}
+
+// ============ UI / TOAST ============
+function showToast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function buildPalette() {
+  const el = document.getElementById('palette');
+  el.innerHTML = '';
+  COLORS.forEach((c, i) => {
+    const sw = document.createElement('div');
+    sw.className = 'swatch' + (c === currentColor ? ' selected' : '');
+    sw.style.background = c;
+    sw.title = `Цвет ${i + 1}`;
+    sw.addEventListener('click', () => {
+      currentColor = c;
+      el.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+      sw.classList.add('selected');
+    });
+    el.appendChild(sw);
+  });
+}
+
+function buildShapesBar() {
+  const el = document.getElementById('shapes-bar');
+  el.innerHTML = '';
+  SHAPE_NAMES.forEach(s => {
+    const btn = document.createElement('div');
+    btn.className = 'shape-btn' + (s === currentShape ? ' selected' : '');
+    btn.title = SHAPE_LABELS[s];
+    btn.innerHTML = shapePreviewSvg(s);
+    btn.addEventListener('click', () => {
+      currentShape = s;
+      el.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+    el.appendChild(btn);
+  });
+}
+
+buildPalette();
+buildShapesBar();
+
+// ============ ПЕРЕКЛЮЧАТЕЛИ РЕЖИМОВ ============
+document.getElementById('toggle-edit-btn').addEventListener('click', function() {
+  isEditable = !isEditable;
+  this.textContent = isEditable ? '🔓 Ред.' : '🔒 Просмотр';
+  this.className = isEditable ? 'mode-btn edit' : 'mode-btn';
+  
+  markers.forEach(m => {
+    if (isEditable) m.dragging.enable();
+    else m.dragging.disable();
+  });
+  
+  document.getElementById('fill-btn').style.display = isEditable ? '' : 'none';
+  document.getElementById('clear-btn').style.display = isEditable ? '' : 'none';
+  document.getElementById('import-btn').style.display = isEditable ? '' : 'none';
+  if (!isEditable) {
+    document.getElementById('delete-selected-btn').style.display = 'none';
+    if (fillMode) cancelFillMode();
+    clearSelection();
+  } else {
+    updateSelectionUI();
+  }
+
+  updateLegend(true);
+  
+  if (!isEditable) {
+    document.getElementById('top-panel').classList.add('hidden');
+  }
+  
+  showToast(isEditable ? 'Режим редактирования' : 'Только просмотр');
+});
+
+document.getElementById('toggle-panel-btn').addEventListener('click', () => {
+  document.getElementById('top-panel').classList.toggle('hidden');
+});
+document.getElementById('close-top-panel').addEventListener('click', () => {
+  document.getElementById('top-panel').classList.add('hidden');
+});
+
+document.getElementById('toggle-legend-btn').addEventListener('click', () => {
+  document.getElementById('legend-panel').classList.toggle('hidden');
+});
+document.getElementById('close-legend').addEventListener('click', () => {
+  document.getElementById('legend-panel').classList.add('hidden');
+});
+
+// ============ МОДАЛЬНОЕ ОКНО ПОДЕЛИТЬСЯ ============
+const shareModal = document.getElementById('share-modal');
+
+document.getElementById('share-btn').addEventListener('click', () => {
+  shareModal.style.display = 'flex';
+});
+
+document.getElementById('close-share-modal').addEventListener('click', () => {
+  shareModal.style.display = 'none';
+});
+
+document.getElementById('share-short-link').addEventListener('click', () => {
+  shareModal.style.display = 'none';
+  shareShortLink();
+});
+
+document.getElementById('share-file-link').addEventListener('click', () => {
+  shareModal.style.display = 'none';
+  shareFileLink();
+});
+
+// ============ ОСТАЛЬНЫЕ КНОПКИ ============
+document.getElementById('clear-btn').addEventListener('click', () => {
+  if (!isEditable || markers.length === 0) return;
+  if (!confirm('Удалить все маркеры?')) return;
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  selectedMarkers.clear();
+  updateSelectionUI();
+  updateLegend();
+  saveState();
+});
+
+document.getElementById('delete-selected-btn').addEventListener('click', deleteSelectedMarkers);
+document.getElementById('export-btn').addEventListener('click', doExport);
+document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-file').click());
+document.getElementById('import-file').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) doImport(file);
+  e.target.value = '';
+});
+document.getElementById('fill-btn').addEventListener('click', () => {
+  if (!isEditable) return;
+  if (fillMode) cancelFillMode();
+  else startFillMode();
+});
+document.getElementById('fill-apply-btn').addEventListener('click', finishFillMode);
+document.getElementById('fill-cancel-btn').addEventListener('click', cancelFillMode);
+document.getElementById('undo-fill-btn')?.addEventListener('click', undoFill); // Кнопка отмены заливки (если добавлена)
+document.getElementById('labels-btn').addEventListener('click', (e) => {
+  showLabels = !showLabels;
+  e.target.classList.toggle('active', showLabels);
+  updateAllTooltips();
+});
+
+// ============ КЛАВИАТУРА ============
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+    if (e.key === 'Escape') e.target.blur();
+    return;
+  }
+  if (e.key === 'Escape') {
+    map.closePopup();
+    if (shareModal.style.display !== 'none') shareModal.style.display = 'none';
+    if (fillMode) cancelFillMode();
+    else if (selectedMarkers.size > 0) clearSelection();
+  } else if (e.key === 'Enter' && fillMode) {
+    finishFillMode();
+  } else if (e.key === 'Delete' && selectedMarkers.size > 0 && isEditable) {
+    deleteSelectedMarkers();
+  }
+});
+
+updateSelectionUI();
+</script>
+</body>
+</html>
