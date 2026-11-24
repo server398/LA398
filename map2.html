@@ -278,7 +278,6 @@
   <button id="toggle-edit-btn" class="mode-btn edit">🔓 Ред.</button>
   <button id="labels-btn" class="active">🏷 Подписи</button>
   
-  <!-- Новые кнопки -->
   <button id="tool-marker-btn" class="accent active">📍 Маркеры</button>
   <button id="tool-arrow-btn">➡️ Стрелки</button>
   <button id="tool-number-btn">🔢 Цифры</button>
@@ -300,7 +299,7 @@
 <script>
 // ============ КОНФИГ ============
 const IMAGE_URL = 'map.jpg';
-const STORAGE_KEY = 'lastasylum_map_state_v3'; // Обновили версию
+const STORAGE_KEY = 'lastasylum_map_state_v3';
 const SHARE_PREFIX = '#m=';
 const URL_PARAM_KEY = 'config';
 const SHAPE_NAMES = ['circle', 'square', 'triangle', 'diamond', 'star', 'hexagon', 'shield', 'cross'];
@@ -345,7 +344,7 @@ const shapePreviewSvg = (shape, color = '#ccc') =>
 // ============ СОСТОЯНИЕ ============
 let currentColor = COLORS[0];
 let currentShape = 'circle';
-let currentTool = 'marker'; // 'marker', 'arrow', 'number'
+let currentTool = 'marker';
 let currentNumber = 1;
 let markers = [];
 let arrows = [];
@@ -353,7 +352,7 @@ let numbers = [];
 let legendLabels = {};
 let imageWidth = 0, imageHeight = 0;
 let showLabels = true;
-let isEditable = true;
+let isEditable = true; // По умолчанию включено
 let selectedMarkers = new Set();
 let nextMarkerId = 1;
 let fillMode = false;
@@ -363,7 +362,7 @@ let lastFillBatch = [];
 let groupDragOrigin = null, groupDragStart = null;
 let lastLegendKey = null;
 
-let arrowStart = null; // Для рисования стрелок
+let arrowStart = null;
 let tempArrowLine = null;
 
 // ============ КАРТА ============
@@ -389,7 +388,6 @@ map.on('click', (e) => {
     return;
   }
 
-  // По умолчанию: маркер
   createMarker(e.latlng, currentColor, currentShape, '');
   if (selectedMarkers.size > 0) clearSelection();
   updateLegend();
@@ -406,11 +404,22 @@ img.onload = () => {
   
   const urlParams = new URLSearchParams(window.location.search);
   const configFile = urlParams.get(URL_PARAM_KEY);
+  const hasHash = location.hash && (location.hash.startsWith(SHARE_PREFIX) || location.hash.startsWith('#map='));
 
   if (configFile) {
+    isEditable = false; // Всегда только просмотр при загрузке конфига
     loadFromConfigFile(configFile);
-  } else if (!loadFromHash()) {
+  } else if (hasHash) {
+    isEditable = false; // Всегда только просмотр при загрузке из ссылки
+    if (!loadFromHash()) {
+      isEditable = true;
+      loadState();
+      updateEditModeUI();
+    }
+  } else {
+    isEditable = true; // В обычном режиме разрешаем редактирование
     loadState();
+    updateEditModeUI();
   }
 };
 img.onerror = () => {
@@ -420,6 +429,46 @@ img.onerror = () => {
   document.body.appendChild(el);
 };
 img.src = IMAGE_URL;
+
+// ============ ЛОГИКА РЕЖИМА РЕДАКТИРОВАНИЯ ============
+function updateEditModeUI() {
+  const btn = document.getElementById('toggle-edit-btn');
+  btn.textContent = isEditable ? '🔓 Ред.' : '🔒 Просмотр';
+  btn.className = isEditable ? 'mode-btn edit' : 'mode-btn';
+
+  // Блокируем/разблокируем перетаскивание маркеров
+  markers.forEach(m => {
+    if (isEditable) m.dragging.enable();
+    else m.dragging.disable();
+  });
+
+  // Скрываем/показываем инструменты редактирования
+  const editElements = ['fill-btn', 'clear-btn', 'import-btn', 'tool-marker-btn', 'tool-arrow-btn', 'tool-number-btn'];
+  editElements.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isEditable ? '' : 'none';
+  });
+
+  if (!isEditable) {
+    document.getElementById('delete-selected-btn').style.display = 'none';
+    if (fillMode) cancelFillMode();
+    if (currentTool !== 'marker') switchTool('marker');
+    clearSelection();
+    document.getElementById('top-panel').classList.add('hidden');
+    document.getElementById('numbers-panel').classList.remove('active');
+  } else {
+    updateSelectionUI();
+    document.getElementById('top-panel').classList.remove('hidden');
+  }
+
+  updateLegend(true);
+}
+
+document.getElementById('toggle-edit-btn').addEventListener('click', function() {
+  isEditable = !isEditable;
+  updateEditModeUI();
+  showToast(isEditable ? 'Режим редактирования' : 'Только просмотр');
+});
 
 // ============ ИНСТРУМЕНТЫ ============
 function switchTool(tool) {
@@ -435,7 +484,6 @@ function switchTool(tool) {
     numPanel.classList.remove('active');
   }
 
-  // Сброс незавершенных действий
   if (tool !== 'arrow' && arrowStart) {
     arrowStart = null;
     if (tempArrowLine) { map.removeLayer(tempArrowLine); tempArrowLine = null; }
@@ -465,7 +513,6 @@ function handleArrowClick(latlng) {
 function createArrow(start, end, color) {
   const line = L.polyline([start, end], { color: color, weight: 4, opacity: 0.9 }).addTo(map);
   
-  // Добавляем стрелку на конце с помощью polylinedecorator
   const decorator = L.polylineDecorator(line, {
     patterns: [
       { offset: '100%', repeat: 0, symbol: L.Symbol.arrowHead({ pixelSize: 15, polygon: false, pathOptions: { stroke: true, color: color, weight: 4, opacity: 0.9 } }) }
@@ -476,7 +523,6 @@ function createArrow(start, end, color) {
   arrows.push(arrowObj);
   line._arrowObj = arrowObj;
 
-  // Удаление по клику
   line.on('click', (e) => {
     L.DomEvent.stopPropagation(e);
     if (!isEditable) return;
@@ -653,7 +699,7 @@ function updateSelectionUI() {
   const btn = document.getElementById('delete-selected-btn');
   const n = selectedMarkers.size;
   btn.textContent = `Удалить (${n})`;
-  btn.style.display = n > 0 ? '' : 'none';
+  btn.style.display = n > 0 && isEditable ? '' : 'none';
 }
 
 function deleteSelectedMarkers() {
@@ -830,7 +876,7 @@ function updateFillCount() {
 function startFillMode() {
   if (!isEditable) return;
   fillMode = true;
-  switchTool('marker'); // Сбрасываем другие инструменты
+  switchTool('marker');
   fillVertices = [];
   document.body.style.cursor = 'crosshair';
   map.doubleClickZoom.disable();
@@ -931,7 +977,6 @@ function packState(onlyUsedLabels) {
 
 function unpackState(data) {
   if (Array.isArray(data.markers) && data.markers.length && typeof data.markers[0] === 'object') {
-    // Старый формат (v1/v2)
     return {
       imageSize: data.imageSize || { w: data.w || imageWidth, h: data.h || imageHeight },
       markers: data.markers.map(m => ({
@@ -989,7 +1034,6 @@ function loadState() {
 }
 
 function applyUnpacked(data, opts = {}) {
-  // Очистка
   markers.forEach(m => map.removeLayer(m));
   arrows.forEach(a => { map.removeLayer(a.line); map.removeLayer(a.decorator); });
   numbers.forEach(n => map.removeLayer(n));
@@ -1027,6 +1071,7 @@ function applyUnpacked(data, opts = {}) {
   });
 
   updateLegend(true);
+  updateEditModeUI(); // Применяем текущий режим (просмотр или ред.)
 }
 
 function doExport() {
@@ -1066,7 +1111,8 @@ async function loadFromConfigFile(filename) {
   } catch (err) {
     console.error(err);
     showToast(`Ошибка загрузки: ${err.message}`);
-    loadState();
+    isEditable = true; // При ошибке разрешаем редактирование
+    loadState(); // Пытаемся загрузить локально
   }
 }
 
@@ -1140,7 +1186,11 @@ function loadFromHash() {
       applyUnpacked(unpackState(data));
       history.replaceState(null, '', location.pathname + location.search);
       return true;
-    } catch (e) { showToast('Ошибка в ссылке'); return false; }
+    } catch (e) { 
+      showToast('Ошибка в ссылке'); 
+      isEditable = true; // Fallback
+      return false; 
+    }
   }
   if (hash.startsWith('#map=')) {
     try {
@@ -1148,7 +1198,10 @@ function loadFromHash() {
       applyUnpacked(unpackState(JSON.parse(b64DecodeUnicode(encoded))));
       history.replaceState(null, '', location.pathname + location.search);
       return true;
-    } catch (e) { return false; }
+    } catch (e) { 
+      isEditable = true; // Fallback
+      return false; 
+    }
   }
   return false;
 }
@@ -1197,41 +1250,6 @@ function buildShapesBar() {
 
 buildPalette();
 buildShapesBar();
-
-// ============ ПЕРЕКЛЮЧАТЕЛИ РЕЖИМОВ ============
-document.getElementById('toggle-edit-btn').addEventListener('click', function() {
-  isEditable = !isEditable;
-  this.textContent = isEditable ? '🔓 Ред.' : '🔒 Просмотр';
-  this.className = isEditable ? 'mode-btn edit' : 'mode-btn';
-  
-  markers.forEach(m => {
-    if (isEditable) m.dragging.enable();
-    else m.dragging.disable();
-  });
-  
-  document.getElementById('fill-btn').style.display = isEditable ? '' : 'none';
-  document.getElementById('clear-btn').style.display = isEditable ? '' : 'none';
-  document.getElementById('import-btn').style.display = isEditable ? '' : 'none';
-  document.getElementById('tool-arrow-btn').style.display = isEditable ? '' : 'none';
-  document.getElementById('tool-number-btn').style.display = isEditable ? '' : 'none';
-  
-  if (!isEditable) {
-    document.getElementById('delete-selected-btn').style.display = 'none';
-    if (fillMode) cancelFillMode();
-    switchTool('marker');
-    clearSelection();
-  } else {
-    updateSelectionUI();
-  }
-
-  updateLegend(true);
-  
-  if (!isEditable) {
-    document.getElementById('top-panel').classList.add('hidden');
-  }
-  
-  showToast(isEditable ? 'Режим редактирования' : 'Только просмотр');
-});
 
 document.getElementById('toggle-panel-btn').addEventListener('click', () => {
   document.getElementById('top-panel').classList.toggle('hidden');
