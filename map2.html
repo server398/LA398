@@ -197,8 +197,17 @@
     .top-panel { width: 100vw; border-radius: 0; top: 0; padding: 8px 10px; max-width: none; }
     .palette .swatch { width: 20px; height: 20px; }
     .legend-panel { top: 10px; right: 10px; width: 180px; max-height: 50vh; }
+    
     .controls { bottom: 5px; left: 5px; right: 5px; gap: 4px; }
     .controls button { padding: 6px 8px; font-size: 11px; }
+    
+    /* Поднимаем кнопки зума на мобильных */
+    .leaflet-bottom.leaflet-right {
+      bottom: 85px !important;
+    }
+    .leaflet-control-zoom {
+      margin-right: 10px !important;
+    }
   }
 </style>
 </head>
@@ -352,7 +361,7 @@ let numbers = [];
 let legendLabels = {};
 let imageWidth = 0, imageHeight = 0;
 let showLabels = true;
-let isEditable = true; // По умолчанию включено
+let isEditable = true;
 let selectedMarkers = new Set();
 let nextMarkerId = 1;
 let fillMode = false;
@@ -407,17 +416,17 @@ img.onload = () => {
   const hasHash = location.hash && (location.hash.startsWith(SHARE_PREFIX) || location.hash.startsWith('#map='));
 
   if (configFile) {
-    isEditable = false; // Всегда только просмотр при загрузке конфига
+    isEditable = false;
     loadFromConfigFile(configFile);
   } else if (hasHash) {
-    isEditable = false; // Всегда только просмотр при загрузке из ссылки
+    isEditable = false;
     if (!loadFromHash()) {
       isEditable = true;
       loadState();
       updateEditModeUI();
     }
   } else {
-    isEditable = true; // В обычном режиме разрешаем редактирование
+    isEditable = true;
     loadState();
     updateEditModeUI();
   }
@@ -436,13 +445,11 @@ function updateEditModeUI() {
   btn.textContent = isEditable ? '🔓 Ред.' : '🔒 Просмотр';
   btn.className = isEditable ? 'mode-btn edit' : 'mode-btn';
 
-  // Блокируем/разблокируем перетаскивание маркеров
   markers.forEach(m => {
     if (isEditable) m.dragging.enable();
     else m.dragging.disable();
   });
 
-  // Скрываем/показываем инструменты редактирования
   const editElements = ['fill-btn', 'clear-btn', 'import-btn', 'tool-marker-btn', 'tool-arrow-btn', 'tool-number-btn'];
   editElements.forEach(id => {
     const el = document.getElementById(id);
@@ -926,24 +933,6 @@ function finishFillMode() {
   showToast(`Добавлено: ${batch.length}`);
 }
 
-function undoFill() {
-  if (!lastFillBatch || lastFillBatch.length === 0) {
-    showToast('Нечего отменять');
-    return;
-  }
-  const n = lastFillBatch.length;
-  lastFillBatch.forEach(m => {
-    map.removeLayer(m);
-    markers = markers.filter(mk => mk !== m);
-    selectedMarkers.delete(m);
-  });
-  lastFillBatch = [];
-  updateSelectionUI();
-  updateLegend();
-  saveState();
-  showToast(`Отменено: ${n}`);
-}
-
 // ============ ПАКОВКА / РАСПАКОВКА ============
 function packState(onlyUsedLabels) {
   const data = {
@@ -1071,7 +1060,7 @@ function applyUnpacked(data, opts = {}) {
   });
 
   updateLegend(true);
-  updateEditModeUI(); // Применяем текущий режим (просмотр или ред.)
+  updateEditModeUI();
 }
 
 function doExport() {
@@ -1111,8 +1100,8 @@ async function loadFromConfigFile(filename) {
   } catch (err) {
     console.error(err);
     showToast(`Ошибка загрузки: ${err.message}`);
-    isEditable = true; // При ошибке разрешаем редактирование
-    loadState(); // Пытаемся загрузить локально
+    isEditable = true;
+    loadState();
   }
 }
 
@@ -1188,7 +1177,7 @@ function loadFromHash() {
       return true;
     } catch (e) { 
       showToast('Ошибка в ссылке'); 
-      isEditable = true; // Fallback
+      isEditable = true;
       return false; 
     }
   }
@@ -1199,7 +1188,7 @@ function loadFromHash() {
       history.replaceState(null, '', location.pathname + location.search);
       return true;
     } catch (e) { 
-      isEditable = true; // Fallback
+      isEditable = true;
       return false; 
     }
   }
