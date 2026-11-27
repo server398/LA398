@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тактика на Битву Королевств</title>
+    <style>
+        :root {
+            --bg-color: #0f111a;
+            --card-bg: #1a1d29;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent-gold: #fbbf24;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-purple: #a855f7;
+            --accent-green: #10b981;
+            --border-color: #2d3748;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Шапка */
+        .header {
+            text-align: center;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            color: var(--accent-gold);
+            font-size: 2em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .time-badge {
+            display: inline-block;
+            background-color: var(--accent-red);
+            color: white;
+            font-weight: bold;
+            font-size: 1.2em;
+            padding: 8px 20px;
+            border-radius: 30px;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Карточки */
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            color: var(--accent-gold);
+            font-size: 1.4em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .card h3 {
+            color: var(--text-main);
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        /* Списки */
+        ul {
+            padding-left: 20px;
+            margin-bottom: 0;
+        }
+        li { margin-bottom: 8px; }
+
+        /* Сетки */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        @media (max-width: 600px) {
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+
+        /* Специальные блоки */
+        .goal-box {
+            background: rgba(251, 191, 36, 0.1);
+            border-left: 4px solid var(--accent-gold);
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 20px;
+        }
+
+        .role-card {
+            background: #202434;
+            border-radius: 8px;
+            padding: 15px;
+            border-top: 3px solid var(--accent-blue);
+        }
+
+        .role-card.inner { border-top-color: var(--accent-purple); }
+        .role-card.outer { border-top-color: var(--accent-blue); }
+        .role-card.sabotage { border-top-color: var(--accent-green); }
+
+        .role-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .alliance-list {
+            font-size: 0.9em;
+            color: var(--accent-gold);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        /* Чат-блоки */
+        .chat-box {
+            background-color: #0b0c10;
+            border: 1px dashed #475569;
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.95em;
+            color: #cbd5e1;
+            margin-top: 15px;
+            white-space: pre-wrap;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #334155;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: 0.2s;
+        }
+
+        .copy-btn:hover { background: #475569; }
+        .copy-btn:active { background: var(--accent-green); }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            background: #334155;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Шапка -->
+    <div class="header">
+        <h1>📜 ТАКТИКА НА БИТВУ КОРОЛЕВСТВ</h1>
+        <div class="time-badge">⏰ СТАРТ ОБЩЕЙ АТАКИ: 16:45</div>
+    </div>
+
+    <!-- Главная цель -->
+    <div class="goal-box">
+        <strong>🎯 ГЛАВНАЯ ЦЕЛЬ:</strong> Зачистка территории и удержание башен. Замок — вторично. Наша победа зависит не от онлайна в моменте, а от того, кто дольше продержится и переиграет врага на выносливость.
+    </div>
+
+    <!-- Общие правила -->
+    <div class="card">
+        <h2>⚔️ Общие правила боя</h2>
+        <ul>
+            <li><strong>Занимаем места (16:45):</strong> Летим всей массой. Первые выстраиваются — сразу начинаем толпой выжигать всех, до кого дотянулись. Не даем им сгруппироваться.</li>
+            <li><strong>Реакция на нападение:</strong> Если нападают — либо отбиваемся, либо сваливаем (если силы неравны). Не сливаем войска в пустоту, бережем ресурсы на долгую игру.</li>
+            <li><strong>Тактика «Пустых»:</strong> Пусть враг ходит в замок и башни, тратит время и силы. В это время мы выносим всех до кого дотягиваемся на открытой местности и зачищаем сектора.</li>
+            <li><strong>Приоритет захвата:</strong> Даже если враг долго держит Замок — <span style="color: var(--accent-red); font-weight: bold;">ПЛЕВАТЬ</span>. Наша задача — захватить Башни и зачистить территорию. Башни дают контроль над картой.</li>
+            <li><strong>Выносливость:</strong> Тут решает не просто онлайн, а готовность драться. Кто первый психанет и уйдет — тот проиграл. Играем на измор.</li>
+        </ul>
+    </div>
+
+    <!-- Топ-10 -->
+    <div class="card">
+        <h2>🛡️ Распределение альянсов (Топ-10)</h2>
+        <div class="grid-2">
+            <div class="role-card" style="border-top-color: var(--accent-red);">
+                <div class="role-title">🏰 ЗАМОК</div>
+                <div class="alliance-list">Ответственный: [Moon]</div>
+                <p style="font-size: 0.9em; margin: 0;">Держать удар, отвлекать на себя основное внимание врага. Если видите, что замок скоро падет — не сливайтесь полностью, сваливайте и переходите на помощь к башням.</p>
+            </div>
+            <div class="role-card">
+                <div class="role-title">🗼 БАШНИ (Главный приоритет!)</div>
+                <ul style="font-size: 0.9em; padding-left: 15px; margin: 0;">
+                    <li><strong>Северная:</strong> [BPM] + [VENS]</li>
+                    <li><strong>Восточная:</strong> [ZOR] + [Vic]</li>
+                    <li><strong>Южная:</strong> [KING] + [Top]</li>
+                    <li><strong>Западная:</strong> [VAB] + [AQUA]</li>
+                </ul>
+            </div>
+        </div>
+        <div style="margin-top: 15px; font-size: 0.9em; background: rgba(59, 130, 246, 0.1); padding: 10px; border-radius: 6px;">
+            <strong>Задачи на башнях:</strong> Синхронизировать атаки (один танкует, второй выжигает). Не толпиться в башне, если она под захватом врага (выманивайте или перекрывайте пути подхода). Если враг заходит толпой — выжигаем всё, что движется, либо отступаем для перегруппировки.
+        </div>
+    </div>
+
+    <!-- Топ 11-32 -->
+    <div class="card">
+        <h2>🛡️ Вторая линия: Альянсы 11–32</h2>
+        <p>Их задача — <strong>изматывание, саботаж и работа на износ (KvK)</strong>. Для победы нужно 7200 очков (два часа удержания), а каждая угловая башня ускоряет счетчик на 25%. Альянсы 11–32 не стоят в мясорубке, но от них зависит, смогут ли топы долго держать точки.</p>
+        
+        <div class="grid-3" style="margin-top: 20px;">
+            <!-- Внутреннее кольцо -->
+            <div class="role-card inner">
+                <div class="role-title">1. Внутреннее кольцо <br><span style="font-size: 0.8em; color: var(--text-muted); font-weight: normal;">(Гарнизоны башен)</span></div>
+                <div class="alliance-list">[CRZ], [GOT], [XXX], [OBLI], [MKT]</div>
+                <p style="font-size: 0.85em; margin: 0;">Заходят <em>вторыми</em> в башни после топ-10. «Заливают» гарнизон войсками, чтобы враг тратил больше времени на зачистку. Не атакуют первыми, укрепляют уже взятые точки.</p>
+            </div>
+
+            <!-- Внешнее кольцо -->
+            <div class="role-card outer">
+                <div class="role-title">2. Внешнее кольцо <br><span style="font-size: 0.8em; color: var(--text-muted); font-weight: normal;">(Перехват и зачистка)</span></div>
+                <div class="alliance-list">[wolf], [drey], [VIP], [Rus], [13am]</div>
+                <p style="font-size: 0.85em; margin: 0;">Патрулируют подступы, ловят одиночек на марше. <strong>Не вступают в бой с превосходящими силами</strong> — «кусают» и задерживают. При атаке на башню — заходят с фланга.</p>
+            </div>
+
+            <!-- Саботаж -->
+            <div class="role-card sabotage">
+                <div class="role-title">3. Саботаж и давление <br><span style="font-size: 0.8em; color: var(--text-muted); font-weight: normal;">(Рейды и путаница)</span></div>
+                <div class="alliance-list">[REa], [IMP], [SAGE], [KKSS], [RVN], [kWa], [1c8], [hope], [DmH], [SOYZ], [Ceo]</div>
+                <p style="font-size: 0.85em; margin: 0;">Атакуют незащищённые города врага (выбитое святилище = 51 000 очков). Ломают экономику. Враг стягивает войска к замку? Жгите его пустые города.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Инструкция для второй линии -->
+    <div class="card">
+        <h2>📋 Тактическая инструкция (11–32)</h2>
+        <ul style="font-size: 0.95em;">
+            <li><strong>Не геройствуйте в центре.</strong> Ваша сила — в численности. Если идет топ-игрок врага — отходите и заходите снова, когда он отвлечется. Правильный отход приносит больше пользы, чем смерть.</li>
+            <li><strong>«Пустые» города — ваша добыча.</strong> Пока топы врага дерутся за Замок, их тылы пусты. Группа 3 должна постоянно мониторить карту и сносить незащищённые святилища.</li>
+            <li><strong>Работа в связке с топ-10.</strong> Если башню атакуют — Группа 1 заходит в гарнизон, Группа 2 бьет снаружи. Это и есть «круговая оборона».</li>
+            <li><strong>Смена тактики.</strong> Если башню не удержать — не сливайте армию. Отходите и переключайтесь на рейды (Группа 3).</li>
+            <li><strong>Связь.</strong> Быть в общем голосовом канале. Сигналы «башня под атакой», «враг стягивается», «свободен город» — передавать мгновенно.</li>
+        </ul>
+    </div>
+
+    <!-- Сообщения для чата -->
+    <div class="card">
+        <h2>📢 Сообщения для чата (нажмите, чтобы скопировать)</h2>
+        
+        <h3>Для всего сервера (Топ-10):</h3>
+        <div class="chat-box" id="chat-global">
+Всем внимание! В 16:45 общая атака.
+Занимаем позиции. Наша главная цель — БАШНИ и ЗАЧИСТКА ТЕРРИТОРИИ, а не тупое мясо в замке.
+Если враг лезет в замок — пусть лезет, оставляя свои точки пустыми. В это время мы выжигаем всё вокруг до кого дотянемся.
+Нападают? Отбиваемся или сваливаем, если силы не равны. Бережем силы на долгую игру.
+Moon — на замке, отвлекают. Остальные пары альянсов — по башням (Север: BPM+VENS, Восток: ZOR+Vic, Юг: KING+Top, Запад: VAB+AQUA).
+Играем на выносливость. Кто дольше выстоит — тот и заберет всё. Погнали!
+            <button class="copy-btn" onclick="copyText('chat-global', this)">Копировать</button>
+        </div>
+
+        <h3 style="margin-top: 25px;">Для альянсов 11–32:</h3>
+        <div class="chat-box" id="chat-low">
+Альянсы 11–32, ваша задача — вторая линия!
+CRZ, GOT, XXX, OBLI, MKT — заходите в гарнизоны башен вторыми, заливайте войска. Не атакуйте первыми.
+wolf, drey, VIP, Rus, 13am — патрулируйте подступы, ловите одиночек, заходите с флангов. Не умирайте в лоб.
+Остальные (REa, IMP, SAGE и т.д.) — жгите пустые города врага. Пока топы дерутся за замок, их тылы открыты.
+Не геройствуйте, отходите, если силы неравны. Наша победа — в изматывании, а не в смерти в центре.
+            <button class="copy-btn" onclick="copyText('chat-low', this)">Копировать</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function copyText(elementId, btn) {
+        const text = document.getElementById(elementId).innerText.replace('Копировать', '').trim();
+        navigator.clipboard.writeText(text).then(() => {
+            const originalText = btn.innerText;
+            btn.innerText = 'Скопировано!';
+            btn.style.background = 'var(--accent-green)';
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.background = '#334155';
+            }, 2000);
+        }).catch(err => {
+            console.error('Ошибка копирования: ', err);
+        });
+    }
+</script>
+
+</body>
+</html>
